@@ -1,0 +1,73 @@
+{
+  "$schema": "https://ChazzCoin.github.io/claude-kit/manifest.schema.json",
+  "name": "claude-kit",
+  "version": "0.1.0",
+  "description": "Portable Claude Code foundation — skills, rules, and templates that work across any repo, any language, any platform.",
+  "source": {
+    "repo": "https://github.com/ChazzCoin/claude-kit",
+    "branch": "main"
+  },
+  "kit": {
+    "description": "Files that get synced into target .claude/. Updates here propagate via /sync.",
+    "files": [
+      {
+        "from": "kit/skills/",
+        "to": ".claude/skills/",
+        "policy": "directory-mirror",
+        "note": "All subdirectories under kit/skills/ are individual skills. Each is mirrored to .claude/skills/."
+      },
+      {
+        "from": "kit/task-rules.md",
+        "to": ".claude/task-rules.md",
+        "policy": "file-replace",
+        "note": "Generic execution rules. Project-specific commands come from CLAUDE.md."
+      },
+      {
+        "from": "kit/task-template.md",
+        "to": ".claude/task-template.md",
+        "policy": "file-replace"
+      }
+    ]
+  },
+  "bootstrap": {
+    "description": "One-time files copied at init only. Never overwritten by /sync.",
+    "files": [
+      {
+        "from": "bootstrap/CLAUDE.md.template",
+        "to": "CLAUDE.md",
+        "policy": "skip-if-exists"
+      },
+      {
+        "from": "bootstrap/PHASES.md.template",
+        "to": "tasks/PHASES.md",
+        "policy": "skip-if-exists"
+      },
+      {
+        "from": "bootstrap/ROADMAP.md.template",
+        "to": "tasks/ROADMAP.md",
+        "policy": "skip-if-exists"
+      },
+      {
+        "from": "bootstrap/AUDIT.md.template",
+        "to": "tasks/AUDIT.md",
+        "policy": "skip-if-exists"
+      },
+      {
+        "from": "bootstrap/foundation.json",
+        "to": ".claude/foundation.json",
+        "policy": "init-only-with-sha",
+        "note": "Stamped with the kit's HEAD commit SHA at init time."
+      }
+    ]
+  },
+  "scaffold": {
+    "description": "Empty directories created at init.",
+    "directories": [
+      "tasks/backlog",
+      "tasks/active",
+      "tasks/done",
+      "docs/decisions",
+      "docs/postmortems"
+    ]
+  }
+}
