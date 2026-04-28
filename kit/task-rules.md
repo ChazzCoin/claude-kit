@@ -10,6 +10,25 @@ starting work.
 > for each project. Where this file says "the project's verification
 > command," see `CLAUDE.md` for the actual string.
 
+> **Platform extensions.** Files in `.claude/` named with a platform
+> prefix — e.g. `ios-task-rules.md`, `web-task-rules.md`,
+> `python-task-rules.md` — extend this file for platform-specific
+> work. **Read the relevant prefix files based on the work at hand**:
+>
+> - Working on iOS code or anything affecting the iOS app → read
+>   `ios-task-rules.md`
+> - Working on web code → read `web-task-rules.md`
+> - Working on Python code → read `python-task-rules.md`
+> - Cross-boundary work (e.g. iOS HTTP client to a Python API) →
+>   read both relevant prefix files
+> - Pure cross-platform work → just this file
+>
+> Same convention applies across the whole `.claude/` tree:
+> `ios-conventions.md`, `web-deploy.md`, etc., and skills like
+> `ios-release/`, `web-deploy/`. The prefix is a discovery hint, not
+> a gate — every project pulls all files; each work session reads the
+> ones that apply.
+
 ## Scope discipline
 
 - One task = one PR. Do not bundle unrelated changes.

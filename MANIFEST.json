@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-kit/manifest.schema.json",
   "name": "claude-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Portable Claude Code foundation — skills, rules, and templates that work across any repo, any language, any platform.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-kit",
@@ -9,18 +9,49 @@
   },
   "kit": {
     "description": "Files that get synced into target .claude/. Updates here propagate via /sync.",
+    "naming_convention": {
+      "description": "File and skill names use platform prefixes as a discovery hint, NOT a gate. Every project pulls everything; each work session reads the files relevant to the work at hand.",
+      "examples": {
+        "task-rules.md": "universal — applies to every project",
+        "ios-task-rules.md": "iOS-platform extensions — read when working on iOS code",
+        "web-task-rules.md": "web-platform extensions — read when working on web code",
+        "python-task-rules.md": "Python-platform extensions (future) — read when working on Python code",
+        "skills/audit/": "universal skill",
+        "skills/ios-release/": "iOS-specific skill (archive + TestFlight upload)",
+        "skills/web-deploy/": "web-specific skill (future)"
+      },
+      "rationale": "A multi-platform project (e.g. iOS app calling a Python API) reads both ios-* and python-* prefix files when work crosses the boundary. The universal task-rules.md documents the discovery hint at top."
+    },
     "files": [
       {
         "from": "kit/skills/",
         "to": ".claude/skills/",
         "policy": "directory-mirror",
-        "note": "All subdirectories under kit/skills/ are individual skills. Each is mirrored to .claude/skills/."
+        "note": "All subdirectories under kit/skills/ are individual skills. Each is mirrored to .claude/skills/. Skill names follow the platform-prefix convention (e.g. 'ios-release/' is iOS-specific)."
       },
       {
         "from": "kit/task-rules.md",
         "to": ".claude/task-rules.md",
         "policy": "file-replace",
-        "note": "Generic execution rules. Project-specific commands come from CLAUDE.md."
+        "note": "Universal execution rules. Project-specific commands come from CLAUDE.md."
+      },
+      {
+        "from": "kit/ios-task-rules.md",
+        "to": ".claude/ios-task-rules.md",
+        "policy": "file-replace",
+        "note": "iOS platform extensions. Read when working on iOS code."
+      },
+      {
+        "from": "kit/web-task-rules.md",
+        "to": ".claude/web-task-rules.md",
+        "policy": "file-replace",
+        "note": "Web platform extensions. Read when working on web code."
+      },
+      {
+        "from": "kit/ios-conventions.md",
+        "to": ".claude/ios-conventions.md",
+        "policy": "file-replace",
+        "note": "iOS architectural conventions and gotchas reference."
       },
       {
         "from": "kit/task-template.md",
