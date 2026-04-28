@@ -14,6 +14,54 @@ human-readable rollback).
 
 ---
 
+## v0.3.0 — 2026-04-28
+
+### Added
+
+- **`kit/skills/spec-phase/`** — new skill for phase-scoped batch
+  prep. Walks every stub in a named phase, expands each into a
+  full spec via the same template `/task` Operation 3 uses, then
+  proposes a working order with dependency analysis and a
+  release strategy. Companion to `/task` (single-task scope) and
+  `/plan` (phase-shaping scope). Surfaces the "speccing too far
+  ahead" tradeoff at session start so the user enters with eyes
+  open — invoking this is consciously trading JIT-spec-
+  flexibility for batch coherence.
+- **Vocabulary section** in `kit/task-rules.md`. Two operational
+  terms now have hard, unambiguous definitions:
+  - **batch** = a phase of tasks (not "any group of PRs," not
+    "a sprint")
+  - **tag and bag** = the full release pipeline on whatever's
+    ready right now (merge → build → deploy → annotated tag →
+    push tag → AUDIT entry)
+  Inserted between the platform-extensions note and "Scope
+  discipline" so the rest of the doc and the skills can lean on
+  the terms without ambiguity.
+
+### Changed
+
+- `MANIFEST.json` version `0.2.0` → `0.3.0`. No structural
+  changes — `kit.files` already mirrors `kit/skills/` as a
+  directory, so the new skill is picked up by `/sync`
+  automatically.
+
+### Did not change
+
+- Bootstrap files. CLAUDE.md / PHASES.md / ROADMAP.md / AUDIT.md
+  templates are unaffected.
+- `bin/init`. New skills come along with the existing
+  `kit/skills/` mirror.
+
+### Origin
+
+Both additions originated in vsi-web during a release session,
+got dogfooded on Phase 3 batch prep, then upstreamed here. The
+project-specific version of the skill had a few VSI-specific
+illustrations baked in (e.g., a `TASK-018a/b/c` example);
+genericized for the kit.
+
+---
+
 ## v0.2.0 — 2026-04-28
 
 ### Added
