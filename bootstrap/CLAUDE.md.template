@@ -14,6 +14,29 @@ before making non-trivial changes.
 uses it, why does it exist? Be specific. Not marketing. Replace this
 text.}}
 
+## Platform
+
+{{Declare the project's platform so universal skills (especially
+`/release`) can find the right platform-specific extensions.}}
+
+**Platform:** {{ios | web | python | android | backend | universal}}
+
+When this is set, agents read the matching `.claude/<platform>-*.md`
+files (e.g. `.claude/ios-task-rules.md`,
+`.claude/ios-conventions.md`) alongside the universal
+`.claude/task-rules.md`. Multi-platform projects can list more than
+one — e.g. `ios + python` for an iOS app talking to a Python API,
+or `web + python` for a web frontend with a Python backend.
+Agents will read all relevant prefix files for cross-boundary work.
+
+If `universal`, only the unprefixed kit files apply — useful for
+docs sites, libraries, or projects whose platform isn't yet
+represented in the kit.
+
+The `/release` skill detects this declaration first, then falls
+back to inferring from manifest files (`*.xcodeproj` → ios,
+`pyproject.toml` → python, `package.json` → web, etc.).
+
 ## Tech stack
 
 {{LIST THE STACK — language(s), framework(s), runtime(s), key
