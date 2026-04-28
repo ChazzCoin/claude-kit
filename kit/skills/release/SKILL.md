@@ -16,6 +16,43 @@ prepares, asks, executes only on explicit go.
 
 ## Behavior contract
 
+- **Detect platform before discovering deploy commands.** The kit
+  uses platform-prefixed skill names (e.g. `/ios-release`,
+  `/web-deploy`) for platform-specific release flows. Before doing
+  anything else, figure out which platform applies and decide
+  whether to delegate. Detection rules:
+
+  1. **Explicit declaration in `CLAUDE.md`.** Look for a `## Platform`
+     section or a "Platform: <name>" header. If present, use it
+     verbatim. Multi-platform declarations (e.g. "ios + python")
+     are valid — the user knows which release skill they want.
+  2. **Inferred from manifest files** when `CLAUDE.md` is silent:
+     - `*.xcodeproj` / `*.xcworkspace` / `Package.swift` at repo
+       root → `ios`
+     - `package.json` containing `"react-native"` dep → `react-native`
+       (no skill yet, fall through to universal flow)
+     - `package.json` only (no react-native) → `web` (no
+       `/web-release` skill yet, fall through)
+     - `pyproject.toml` / `setup.py` → `python`
+     - `build.gradle` / `*.gradle.kts` with `android` plugin →
+       `android`
+     - Otherwise → `universal`
+
+  Then check whether a `<platform>-release` skill exists in
+  `.claude/skills/`. If yes, **propose handoff explicitly**:
+
+  > This is an **iOS** project. The right tool is `/ios-release`,
+  > which handles the `xcodebuild` archive → `altool` upload flow.
+  > Want me to hand off, or are you intentionally invoking the
+  > universal `/release` flow?
+
+  Wait for confirmation. **Do not auto-invoke another skill.** The
+  user might be running the universal flow on purpose (e.g., a
+  non-iOS deploy in an iOS-primary monorepo). Always ask.
+
+  If no platform-specific release skill exists, proceed with the
+  universal flow below.
+
 - **Discover, don't assume.** Read in this order:
   1. `CLAUDE.md` — the "Deploy" / "Release" section if it exists.
   2. `DEPLOY.md` — full deploy runbook.
@@ -61,6 +98,15 @@ prepares, asks, executes only on explicit go.
   failed, the exact error, and ask before any cleanup or retry.
 
 ## The flow
+
+### Step 0 — Platform detection + delegation
+
+Before pre-flight, determine the project's platform per the
+"Detect platform" rule in the Behavior contract. If a
+`<platform>-release` skill exists, surface the handoff option to
+the user and wait for their confirmation. Only proceed past Step 0
+if the user opts into the universal flow or the platform has no
+specific skill.
 
 ### Step 1 — Pre-flight check
 

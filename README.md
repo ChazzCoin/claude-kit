@@ -14,27 +14,61 @@ templates that work across any repo, any language, any platform.
 
 ```
 claude-kit/
-├── kit/                    # synced into target's .claude/
-│   ├── skills/             # all the slash commands
-│   ├── task-rules.md       # generic execution rules
-│   └── task-template.md    # spec template for new tasks
-├── bootstrap/              # one-time files (init only, never synced)
+├── kit/                          # synced into target's .claude/
+│   ├── skills/                   # slash commands
+│   │   ├── audit/                #   universal
+│   │   ├── …                     #   (more universal)
+│   │   └── ios-release/          #   iOS-specific (prefix marks scope)
+│   ├── task-rules.md             # universal execution rules
+│   ├── ios-task-rules.md         # iOS platform extensions
+│   ├── web-task-rules.md         # web platform extensions (placeholder)
+│   ├── ios-conventions.md        # iOS architectural reference
+│   └── task-template.md          # spec template for new tasks
+├── bootstrap/                    # one-time files (init only, never synced)
 │   ├── CLAUDE.md.template
 │   ├── PHASES.md.template
 │   ├── ROADMAP.md.template
 │   ├── AUDIT.md.template
-│   └── foundation.json     # initial sync-tracking file
+│   └── foundation.json           # initial sync-tracking file
 ├── bin/
-│   └── init                # bootstrap a target project
-├── MANIFEST.json           # what files this kit ships
-└── README.md               # this file
+│   └── init                      # bootstrap a target project
+├── MANIFEST.json                 # what files this kit ships
+└── README.md                     # this file
 ```
 
-**`kit/`** = synced files. Improvements here propagate to every project
-that runs `/sync`.
+**`kit/`** = synced files. Improvements here propagate to every
+project that runs `/sync`.
 
-**`bootstrap/`** = one-time files. Init copies them once if they don't
-exist; they belong to the project after that and never get overwritten.
+**`bootstrap/`** = one-time files. Init copies them once if they
+don't exist; they belong to the project after that and never get
+overwritten.
+
+### Platform-prefix naming convention
+
+The kit uses **filename prefixes** to mark platform scope:
+
+| Pattern | Scope | Example |
+|---|---|---|
+| no prefix | Universal — every project | `task-rules.md`, `skills/audit/` |
+| `ios-*` | iOS-specific | `ios-task-rules.md`, `skills/ios-release/` |
+| `web-*` | Web-specific | `web-task-rules.md`, `skills/web-deploy/` |
+| `python-*` | Python-specific (future) | `python-task-rules.md` |
+| `android-*` | Android-specific (future) | `android-task-rules.md` |
+
+**Important:** the prefix is a **discovery hint, not a gate.** Every
+project that runs `bin/init` pulls *everything* — universal files
+plus all platform-prefix files. The prefix tells Claude which files
+are relevant to the current work. So an iOS project where Claude is
+working on the HTTP layer can naturally read `python-task-rules.md`
+to understand the API conventions on the other end.
+
+This makes multi-platform projects (e.g., a monorepo with iOS + web,
+or an iOS app talking to a Python backend) work without `--platform`
+flags — every project installs everything; each work session reads
+the prefix files that apply.
+
+The universal `task-rules.md` documents this convention at the top
+so every Claude session is aware of it.
 
 ---
 
@@ -42,6 +76,8 @@ exist; they belong to the project after that and never get overwritten.
 
 Run `/skills` inside any project after init to see the live list.
 Current set:
+
+### Universal (apply to every project)
 
 | Skill | Purpose |
 |---|---|
@@ -52,7 +88,7 @@ Current set:
 | `/onboard` | Guided onboarding for new contributors |
 | `/plan` | Socratic roadmap-planning partner |
 | `/postmortem` | Incident postmortem drafter |
-| `/release` | End-to-end production release orchestrator |
+| `/release` | End-to-end production release orchestrator (delegates to platform skills) |
 | `/review` | Senior line-by-line peer review |
 | `/roadmap` | Full per-phase view including completed work |
 | `/run` | Toolchain-detecting launcher |
@@ -63,6 +99,12 @@ Current set:
 | `/sync` | Reconcile this project's `.claude/` with claude-kit |
 | `/task` | Per-task action skill (file, move, expand) |
 | `/update-docs` | Reconcile docs against reality |
+
+### Platform-specific
+
+| Skill | Scope | Purpose |
+|---|---|---|
+| `/ios-release` | iOS | Archive + export + validate + upload to TestFlight via xcodebuild + altool |
 
 ---
 
@@ -97,6 +139,135 @@ git diff
 # fill in CLAUDE.md placeholders
 # commit
 ```
+
+---
+
+## Integrating into an existing project (agent-friendly)
+
+If you're a Claude agent already working in a project that has its
+own `.claude/`, `tasks/`, and `CLAUDE.md` — and you want to bring
+the kit in without losing project-specific work — follow this exact
+flow. Designed to be runnable on a single read of this section, no
+prior kit knowledge required.
+
+### What `bin/init` will do to an existing project
+
+| File / dir | Policy | What you should know |
+|---|---|---|
+| `.claude/skills/` | additive — overlays kit skills, doesn't delete project-only ones | If a kit skill name collides with a project-only skill, the kit wins. **Rename project-only skills with a `local-` prefix BEFORE init** if they share a name with a kit skill. |
+| `.claude/task-rules.md` | **OVERWRITE** with kit version | If your project has elaborated this file with project-specific content (gated files, verification commands, baselines, project trust modes), **back it up first** — see "Save your work" below. |
+| `.claude/task-template.md` | **OVERWRITE** with kit version | Same — back it up first if project-customized. |
+| `.claude/<platform>-*.md` (e.g. `ios-task-rules.md`) | added | New file — won't collide unless you happen to already have one with a matching name. |
+| `.claude/foundation.json` | created if missing | Skipped if exists — your existing pin stays. |
+| `tasks/{backlog,active,done}/` | scaffolded if missing/empty | Existing task files preserved. |
+| `tasks/PHASES.md`, `tasks/ROADMAP.md`, `tasks/AUDIT.md` | `skip-if-exists` | Existing project-specific versions stay. |
+| `CLAUDE.md` | `skip-if-exists` | Existing CLAUDE.md stays. **You'll edit it after init** to add the new `## Platform` section and migrate any project-specific content from the old task-rules.md. |
+| `docs/decisions/`, `docs/postmortems/` | scaffolded if missing | Empty `.gitkeep` only. |
+
+### Save your work BEFORE running init
+
+If your project has elaborated `.claude/task-rules.md` or
+`.claude/task-template.md` beyond the kit's defaults, save them
+first:
+
+```sh
+cp .claude/task-rules.md /tmp/_pre-kit-task-rules.bak
+cp .claude/task-template.md /tmp/_pre-kit-task-template.bak
+```
+
+These will be overwritten by `bin/init`. After init, you'll diff
+the backups to identify project-specific content and move it to
+`CLAUDE.md` (where the kit's design says project-specifics belong).
+
+### The integration sequence
+
+```sh
+# 1. Branch off main (or your equivalent default).
+git checkout main && git pull
+git checkout -b chore/integrate-claude-kit
+
+# 2. Save your project-elaborated kit files.
+cp .claude/task-rules.md /tmp/_pre-kit-task-rules.bak 2>/dev/null || true
+cp .claude/task-template.md /tmp/_pre-kit-task-template.bak 2>/dev/null || true
+
+# 3. Clone the kit.
+git clone https://github.com/ChazzCoin/claude-kit /tmp/claude-kit
+
+# 4. Run init.
+/tmp/claude-kit/bin/init .
+
+# 5. Inspect what changed.
+git status
+git diff .claude/
+
+# 6. Reconcile. Diff the backup against the new kit version.
+diff /tmp/_pre-kit-task-rules.bak .claude/task-rules.md
+
+# Identify content that's:
+#   - Project-specific (move to CLAUDE.md)
+#   - Generic improvement (consider PR'ing back to claude-kit)
+#   - Already covered by the kit (drop)
+
+# 7. Edit CLAUDE.md:
+#    - Add the new "## Platform" section (right after "## What this is")
+#      and declare your project's platform.
+#    - Move project-specific gated files from old task-rules.md into
+#      the "Gated files" section.
+#    - Move project-specific verification baselines (e.g. warning count)
+#      into the "Commands" section or a verification subsection.
+#    - Move project trust modes (e.g. "approval gate", "stabilization
+#      mode") into a "Phase" section in CLAUDE.md.
+
+# 8. Verify nothing important was lost.
+diff /tmp/_pre-kit-task-rules.bak .claude/task-rules.md | grep "^<"
+# Anything starting with "<" was in your original but not in the kit.
+# It either landed in CLAUDE.md (good), is now redundant (good), or
+# was lost (fix).
+
+# 9. Run the project's verification gate (build/test).
+# 10. Open an integration PR.
+```
+
+### What goes where (the kit's design)
+
+The kit's principle: **`task-rules.md` and prefix files are generic;
+project-specifics live in `CLAUDE.md`.**
+
+| Project-specific content | Goes in |
+|---|---|
+| This project's actual scheme name, baseline warning count | `CLAUDE.md` "Commands" |
+| Specific Realm models / data classes that exist in this app | `CLAUDE.md` "Schema ownership" |
+| Bundle ID, team ID, version | `CLAUDE.md` (top metadata or "Tech stack") |
+| This project's phase state (stabilization, alpha, etc.) | `CLAUDE.md` "Phase" |
+| Trust modes specific to this project (e.g. "every change requires per-change approval") | `CLAUDE.md` "Phase" or a dedicated section |
+| Project-specific gated files beyond the kit defaults | `CLAUDE.md` "Gated files" |
+
+| Generic platform content | Goes in |
+|---|---|
+| iOS verification gate command shape (`xcodebuild …`) | `kit/ios-task-rules.md` (already there) |
+| iOS protected files (`*.xcodeproj/`, etc.) | `kit/ios-task-rules.md` (already there) |
+| Apple build-number monotonic constraint | `kit/ios-task-rules.md` (already there) |
+| Universal build/test/release patterns | `kit/task-rules.md` (already there) |
+
+If during reconciliation you find your project had a generic
+improvement that the kit lacks (e.g. a workflow pattern that would
+help every project), open a PR against `claude-kit` to push it
+upstream. That's how the kit gets better.
+
+### What to do if you're unsure
+
+Use `/sync` after init. The skill reads `.claude/foundation.json`
+and shows a diff of every kit-managed file vs the local version.
+You can accept changes file-by-file or mark a file as a "local
+override" so future syncs respect it.
+
+### Rollback
+
+`bin/init` is non-destructive of bootstrap files (CLAUDE.md, etc.),
+but it does overwrite `task-rules.md` and `task-template.md`. If
+something went wrong, the integration branch can be deleted and the
+project reverts to its pre-init state (you didn't merge the
+branch yet — you were on `chore/integrate-claude-kit`, right?).
 
 ---
 

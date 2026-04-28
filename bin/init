@@ -151,11 +151,21 @@ cat <<EOF
 
 Next steps:
   1. Open CLAUDE.md and fill in the {{PLACEHOLDERS}} for this project
-     (tech stack, build/test/run/deploy commands, schema ownership).
+     (tech stack, build/test/run/deploy commands, schema ownership,
+     and **declare the project's platform** in the "## Platform"
+     section so the right .claude/<platform>-*.md files apply).
   2. Open tasks/PHASES.md and tasks/ROADMAP.md to draft your first
      phase + tasks. (Or run /plan to think through it.)
   3. Run /skills inside Claude Code to confirm the skill set.
   4. Run /status anytime for a project snapshot.
+
+About the platform-prefixed files (ios-*, web-*, python-*, etc.):
+  - All of them get installed regardless of platform — the prefix
+    is a discovery hint, not a gate.
+  - Agents read the prefix files relevant to the work at hand. The
+    "## Platform" declaration in CLAUDE.md tells them which.
+  - Cross-boundary work (e.g. iOS app to Python API) reads multiple
+    prefix files naturally.
 
 When the kit gets new versions later:
   - Run /sync inside Claude Code to pull updates.
