@@ -88,6 +88,36 @@
         "to": ".claude/foundation.json",
         "policy": "init-only-with-sha",
         "note": "Stamped with the kit's HEAD commit SHA at init time."
+      },
+      {
+        "from": "bootstrap/pact.md.template",
+        "to": ".claude/pact.md",
+        "policy": "skip-if-exists",
+        "note": "Personal working-relationship contract with Claude. Distinct from CLAUDE.md (project facts). Portable across repos."
+      },
+      {
+        "from": "bootstrap/welcome.md.template",
+        "to": ".claude/welcome.md",
+        "policy": "skip-if-exists",
+        "note": "First-thing-on-session-start file. Auto-updated by /handoff."
+      },
+      {
+        "from": "bootstrap/wont-do.md.template",
+        "to": ".claude/wont-do.md",
+        "policy": "skip-if-exists",
+        "note": "Anti-feature list — closed conversations the project has decided against."
+      },
+      {
+        "from": "bootstrap/playlists.md.template",
+        "to": ".claude/playlists.md",
+        "policy": "skip-if-exists",
+        "note": "Curated skill chains for routine moments (morning ritual, end-of-day, weekly, etc.)."
+      },
+      {
+        "from": "bootstrap/bookmarks.md.template",
+        "to": ".claude/bookmarks.md",
+        "policy": "skip-if-exists",
+        "note": "Curated path:line pointers for fast orientation."
       }
     ]
   },
@@ -98,7 +128,17 @@
       "tasks/active",
       "tasks/done",
       "docs/decisions",
-      "docs/postmortems"
+      "docs/postmortems",
+      "docs/notes",
+      "docs/audits",
+      "docs/handoff",
+      "docs/regrets",
+      "docs/retros",
+      "docs/blast-radius",
+      "docs/scope",
+      "docs/exports",
+      ".claude/tradeoffs",
+      ".claude/inbox"
     ]
   }
 }

@@ -8,6 +8,34 @@ before making non-trivial changes.
 > placeholders below for this project. The kit's `/sync` will never
 > overwrite this file — it's yours to evolve.
 
+## 🪡 Auto-loaded primitives
+
+Claude Code follows `@`-imports here. The kit ships a set of small
+primitive files that should be loaded on every session — leave the
+imports below in place unless you've removed the corresponding
+file. Delete a line if the file isn't used in this project.
+
+@.claude/welcome.md
+@.claude/pact.md
+@.claude/bookmarks.md
+@.claude/wont-do.md
+@docs/notes/INDEX.md
+
+*Why each one:*
+- **`welcome.md`** — first-thing context: where you left off, what's
+  in flight. Auto-updated by `/handoff`.
+- **`pact.md`** — your working-relationship preferences with Claude.
+  Portable across repos.
+- **`bookmarks.md`** — curated `path:line` pointers for fast
+  orientation.
+- **`wont-do.md`** — anti-feature list. Stops relitigating closed
+  conversations.
+- **`docs/notes/INDEX.md`** — rolling index of `/lessons` notes.
+  Future Claude sessions read prior learnings on session start.
+
+If your project uses `/inbox`, add `@.claude/inbox/<your-handle>.md`
+to load your messages on session start.
+
 ## What this is
 
 {{ONE-PARAGRAPH PROJECT DESCRIPTION — what does this project do, who
