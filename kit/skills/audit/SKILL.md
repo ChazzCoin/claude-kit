@@ -1,6 +1,6 @@
 ---
 name: audit
-description: Audit a section of the codebase and produce a two-part report — (1) architectural breakdown with code snippets and (2) honest pros/cons assessment. Triggered when the user wants a code review on a slice of the repo — e.g. "/audit src/firebase", "audit the inspection detail flow", "audit what we have for work orders", "give me a read on the auth code".
+description: Audit a section of the codebase and produce a two-part report — (1) architectural breakdown with code snippets and (2) honest pros/cons assessment. The report is rendered in chat AND saved to `docs/audits/<YYYY-MM-DD>-<target-slug>.md` so audits accumulate as durable project history future sessions can reference. Triggered when the user wants a code review on a slice of the repo — e.g. "/audit src/firebase", "audit the inspection detail flow", "audit what we have for work orders", "give me a read on the auth code".
 ---
 
 # /audit — Codebase audit
@@ -9,6 +9,11 @@ Take a target (a directory, a feature, a module, a file) and produce
 a single readable report with two parts: how it's built, and how it
 holds up. No marketing voice. No soft-pedaling. Per CLAUDE.md: blunt
 resonant honesty, calibrated confidence, no narratives.
+
+The report is rendered in chat **and** persisted to disk under
+`docs/audits/`. Past audits are durable context — future Claude
+sessions can read them directly when they need the historical read
+on a slice without re-doing the work.
 
 ## Behavior contract
 
@@ -23,6 +28,14 @@ resonant honesty, calibrated confidence, no narratives.
 - **Honest confidence.** If a concern is a guess, say "I think" or
   "likely". If it's verified by reading the code, state it flat. Don't
   pad uncertain claims with hedging adverbs to feel safer.
+- **Persist the report.** Write the same report rendered in chat to
+  `docs/audits/<YYYY-MM-DD>-<target-slug>.md` (create `docs/audits/`
+  if missing). Slug from the audit target — `src-firebase`,
+  `auth-flow`, `work-orders`. If a same-day audit on the same
+  target already exists, suffix with `-2`, `-3`. Add a one-line
+  frontmatter block at the top of the saved file: `**Target.** …
+  **Scope.** … **Date.** YYYY-MM-DD`. The chat response is the
+  same content; the disk file is the durable record.
 - **No fix work.** This skill produces a report only. Do not edit
   code, do not file tasks, do not propose patches. If the user wants
   follow-ups, they'll route them through `/task` after reading.
@@ -162,6 +175,9 @@ Per CLAUDE.md: no narratives, no soft no's, no soft yes's.
 
 ## What "done" looks like for a /audit session
 
-A single rendered report following the structure above. No file
-edits, no commits, no task filings. The user reads it and decides
-what (if anything) to act on next.
+A single rendered report following the structure above, displayed
+in chat **and** saved to `docs/audits/<YYYY-MM-DD>-<target-slug>.md`
+uncommitted. No source-code edits, no commits, no task filings.
+The user reads it, decides what (if anything) to act on next, and
+can `git diff` + commit the saved audit when ready. Past audits
+under `docs/audits/` are durable context for future sessions.

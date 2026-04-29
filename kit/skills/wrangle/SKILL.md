@@ -1,6 +1,6 @@
 ---
 name: wrangle
-description: Wrangle a chaotic or unfamiliar codebase into something clean, organized, and understood. Two phases — Phase 1 is a read-only deep audit (architecture, flows, data models, data/UI layers, infra, startup, auth) that writes durable `.md` reference docs under `docs/wrangle/`. Phase 2 is a tailored plan of low-risk cleanups (dead code, commented-out blocks, obvious smells) plus offers for deeper reviews — nothing edited without explicit user consent. Triggered when the user wants to "wrangle", "tame", "make sense of", or "clean up" an existing codebase — e.g. "/wrangle", "wrangle this repo", "I just inherited this, help me understand it", "let's tame this codebase".
+description: Wrangle a chaotic or unfamiliar codebase into something clean, organized, and understood. Two phases — Phase 1 is a read-only deep audit (architecture, flows, data models, data/UI layers, infra, startup, auth) that writes durable `.md` reference docs under `docs/wrangle/` AND produces a tight Claude-targeted summary at `.claude/context/project-map.md` so future sessions land cold with project context already loaded. Phase 2 is a tailored plan of low-risk cleanups (dead code, commented-out blocks, obvious smells) plus offers for deeper reviews — nothing edited without explicit user consent. Triggered when the user wants to "wrangle", "tame", "make sense of", or "clean up" an existing codebase — e.g. "/wrangle", "wrangle this repo", "I just inherited this, help me understand it", "let's tame this codebase".
 ---
 
 # /wrangle — Tame an existing codebase
@@ -15,9 +15,20 @@ guess to fill the doc.
 
 ## The two phases
 
-**Phase 1 — Read-only audit.** Read everything in scope. Produce a
-set of durable `.md` reference docs under `docs/wrangle/`. No edits
-to source code. Ever.
+**Phase 1 — Read-only audit + context bundle.** Read everything
+in scope. Produce two complementary artifacts:
+
+1. **Deep human reference** — a set of durable `.md` files under
+   `docs/wrangle/` (architecture, data model, startup, auth, etc.).
+   Long-form, browsable, dated context.
+2. **Claude-targeted context bundle** — a tight summary at
+   `.claude/context/project-map.md` that future sessions read
+   alongside `CLAUDE.md` to land cold with project context
+   already loaded. Indexes into the deep docs.
+
+If `CLAUDE.md` is missing or is the bootstrap stub, Phase 1 also
+offers (with consent) to draft a populated `CLAUDE.md` from the
+audit findings. No edits to source code, ever.
 
 **Phase 2 — Tailored plan.** Based on what Phase 1 found, propose
 a prioritized list of cleanups and follow-ups. The user picks what
@@ -30,9 +41,10 @@ user has read (or skimmed) Phase 1 and says go.
 ## Behavior contract — overall
 
 - **Read-only by default.** This skill is allowed to create files
-  under `docs/wrangle/` only. It must not edit source code, config,
-  or any other path during Phase 1. Phase 2 only proposes — it does
-  not apply.
+  under `docs/wrangle/` and `.claude/context/` only — plus, with
+  explicit user consent, a fresh `CLAUDE.md` if one doesn't already
+  exist. It must not edit source code, config, or any other path
+  during Phase 1. Phase 2 only proposes — it does not apply.
 - **Write durable docs, not chat reports.** Phase 1 outputs are
   files on disk so the user (and future sessions) can refer back.
   The chat response after Phase 1 is a short index of what was
@@ -176,6 +188,132 @@ code. Each item ≤1 line. If empty, omit the section.>
 read-only CLI." or "Skipped iOS subproject — out of scope.">
 ```
 
+### Claude-targeted context bundle
+
+The deep `docs/wrangle/` files are for human reading. Future
+Claude sessions need a *tighter* artifact they can load on
+session start without having to read 13 files. Phase 1 also
+writes `.claude/context/project-map.md`:
+
+```markdown
+# Project map — <repo name>
+
+> **For Claude sessions.** Tight context map. The deep reference
+> docs live under `docs/wrangle/`; this file is the index Claude
+> reads on session start to land cold with project context.
+
+**Audited at.** `<short SHA>` on <YYYY-MM-DD>
+
+---
+
+## What this project is
+
+<2-3 sentences. Verified-by-reading. From `docs/wrangle/01-repo-shape.md`
++ `03-architecture.md`. No marketing voice.>
+
+## Tech stack
+
+- <Language + runtime>
+- <Framework(s)>
+- <DB / persistence>
+- <Other load-bearing deps>
+
+## Where execution starts
+
+<2-3 sentences naming the entry point and what it does at boot.
+Cite `path:line`. From `docs/wrangle/02-startup-flow.md`.>
+
+## Key boundaries
+
+<3-5 bullets — the layer seams that matter. Each one-line, with
+the directory or file that anchors it.>
+
+- **<layer>** at `<path>` — <one-line role>
+- …
+
+## Data model in 5 lines
+
+<5 bullets max — the entities a contributor needs to know
+exist. From `docs/wrangle/04-data-model.md`.>
+
+- **<Entity>** — <one-line role>
+- …
+
+## Auth
+
+<One sentence + cite. Or "No auth — this is a public/CLI tool."
+From `docs/wrangle/08-auth.md`.>
+
+## Sharp edges
+
+<3-5 bullets — the gotchas a fresh contributor will hurt
+themselves on. From `docs/wrangle/12-smells-and-risks.md` (only
+the ones tagged dangerous, not all smells).>
+
+- **<gotcha>** — <one-line warning + cite>
+- …
+
+## Where to dig
+
+| Need | File |
+|---|---|
+| Architecture deep-dive | [`docs/wrangle/03-architecture.md`](../../docs/wrangle/03-architecture.md) |
+| Data model | [`docs/wrangle/04-data-model.md`](../../docs/wrangle/04-data-model.md) |
+| Startup flow | [`docs/wrangle/02-startup-flow.md`](../../docs/wrangle/02-startup-flow.md) |
+| Auth | [`docs/wrangle/08-auth.md`](../../docs/wrangle/08-auth.md) |
+| Tests | [`docs/wrangle/10-tests.md`](../../docs/wrangle/10-tests.md) |
+| Build & deploy | [`docs/wrangle/11-build-deploy.md`](../../docs/wrangle/11-build-deploy.md) |
+| Open questions | [`docs/wrangle/questions.md`](../../docs/wrangle/questions.md) |
+
+*(Omit rows for any wrangle file that wasn't created.)*
+
+## Past audits & decisions
+
+- Recent audits: see `docs/audits/`
+- Architectural decisions: see `docs/decisions/`
+- Postmortems: see `docs/postmortems/`
+- Regrets: see `docs/regrets/`
+
+---
+
+*Generated by `/wrangle` on <YYYY-MM-DD>. Re-run wrangle when
+the project shape shifts; this file is regenerable. Past
+versions live in git history.*
+```
+
+This file is **deliberately concise**. Aim for under 200 lines.
+The deep docs do the heavy lifting; this is the index.
+
+### Drafting CLAUDE.md *(if absent or stub)*
+
+Read `CLAUDE.md` at the repo root.
+
+- **No `CLAUDE.md`** → offer to draft one from the audit
+  findings. Ask explicitly:
+
+  ```markdown
+  No `CLAUDE.md` at the repo root. The kit's working contract
+  lives there — and Claude sessions read it on start.
+
+  Want me to draft a `CLAUDE.md` from the audit findings?
+  Tech stack, conventions, the gotchas surfaced, the
+  rules-of-thumb implied by the code. You'll review and edit
+  before it's the working contract; I won't commit.
+  ```
+
+  On approval: write a CLAUDE.md grounded in `docs/wrangle/`.
+  Use the kit's `bootstrap/CLAUDE.md.template` as the shape
+  (read from the kit if available).
+
+- **`CLAUDE.md` exists and looks like the bootstrap stub**
+  (mostly placeholder, very short, has `<TODO>` markers) →
+  same offer: "Looks like CLAUDE.md is mostly stub. Want me to
+  populate it from the audit?" Same consent path.
+
+- **`CLAUDE.md` exists and has substance** → leave it alone.
+  This skill never overwrites a populated CLAUDE.md. Surface
+  in the closing summary that CLAUDE.md was preserved as-is.
+
 ### Phase 1 chat response
 
 After writing the files, the chat response is **short**:
@@ -185,13 +323,20 @@ After writing the files, the chat response is **short**:
 
 > **Headline.** <same one-sentence read as the README.>
 
-Wrote <N> files under `docs/wrangle/`. Start at
-[`docs/wrangle/README.md`](docs/wrangle/README.md).
+**Wrote:**
+- <N> deep reference docs under [`docs/wrangle/`](docs/wrangle/)
+- [`.claude/context/project-map.md`](.claude/context/project-map.md)
+  — tight Claude-targeted context map
+- *(if applicable)* [`CLAUDE.md`](CLAUDE.md) — drafted from audit
+  findings, awaiting your edits
 
 **The three things most worth knowing right now:**
 1. <terse, specific>
 2. <terse, specific>
 3. <terse, specific>
+
+Future Claude sessions can read `.claude/context/project-map.md`
+on start for fast context. The deep docs are linked from there.
 
 Phase 2 (cleanup plan) is ready when you are. Say "go" to see it,
 or read the docs first and come back.
@@ -318,7 +463,13 @@ When (and only when) the user picks specific Tier 1 items:
 
 - **Don't edit source code in Phase 1.** Read-only means
   read-only. The only writes allowed are files under
-  `docs/wrangle/`.
+  `docs/wrangle/`, `.claude/context/project-map.md`, and —
+  with explicit user consent — a fresh `CLAUDE.md` if none
+  exists.
+- **Don't overwrite a populated `CLAUDE.md`.** If a substantive
+  CLAUDE.md already exists, leave it. The drafted CLAUDE.md
+  path is for projects that are missing one or have only the
+  kit bootstrap stub.
 - **Don't auto-run Phase 2.** Wait for the user to ask. They may
   want to read the docs first, or may want to stop after Phase 1.
 - **Don't apply Tier 1 items en masse without the user picking
@@ -348,7 +499,8 @@ When (and only when) the user picks specific Tier 1 items:
 - **`docs/wrangle/` already exists with prior output.** Don't
   silently overwrite. Surface it: "There's a previous wrangle
   from `<date>`. Update in place, archive it to
-  `docs/wrangle/archive/<date>/`, or stop?"
+  `docs/wrangle/archive/<date>/`, or stop?" Same rule for
+  `.claude/context/project-map.md`.
 - **Working tree is dirty.** Warn before writing — the user might
   lose track of which files came from where. Offer to abort.
 - **No source docs at all (no README, no CLAUDE.md).** Wrangle
@@ -375,9 +527,13 @@ When (and only when) the user picks specific Tier 1 items:
 ## What "done" looks like for a /wrangle session
 
 - **After Phase 1:** `docs/wrangle/` exists with an index README
-  and one file per audited area. Chat response is a short
+  and one file per audited area; `.claude/context/project-map.md`
+  exists as the tight Claude-targeted index; if CLAUDE.md was
+  missing/stub, a drafted CLAUDE.md exists (with consent),
+  uncommitted, awaiting user edits. Chat response is a short
   headline + the three things most worth knowing + an offer to
-  run Phase 2.
+  run Phase 2. Future Claude sessions in this project land cold
+  with project context already loaded.
 - **After Phase 2 (if run):** A tailored plan rendered in chat,
   with Tier 1/2/3 items and open offers. Any approved Tier 1
   items applied to the working tree, uncommitted. The user knows
