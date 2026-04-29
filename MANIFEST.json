@@ -57,6 +57,12 @@
         "from": "kit/task-template.md",
         "to": ".claude/task-template.md",
         "policy": "file-replace"
+      },
+      {
+        "from": "kit/output-styles.md",
+        "to": ".claude/output-styles.md",
+        "policy": "file-replace",
+        "note": "Catalog of named visual output patterns. Skills cite styles by name; this is the reference."
       }
     ]
   },

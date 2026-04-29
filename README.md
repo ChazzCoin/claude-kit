@@ -23,6 +23,7 @@ claude-kit/
 │   ├── ios-task-rules.md         # iOS platform extensions
 │   ├── web-task-rules.md         # web platform extensions (placeholder)
 │   ├── ios-conventions.md        # iOS architectural reference
+│   ├── output-styles.md          # catalog of named visual output patterns
 │   └── task-template.md          # spec template for new tasks
 ├── bootstrap/                    # one-time files (init only, never synced)
 │   ├── CLAUDE.md.template

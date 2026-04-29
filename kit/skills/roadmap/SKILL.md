@@ -6,10 +6,18 @@ description: Display a phase-organized table of every task across `tasks/{backlo
 # /roadmap — Task list by phase (full history)
 
 When invoked, produce a markdown summary grouped by **Phase**.
-Each phase gets its own table containing every task in that
-phase regardless of state (done / active / backlog). The output
-should be the only thing in the response (no preamble, no
-closing commentary). It needs to render cleanly in Claude
+The output has two parts:
+
+1. **Roadmap timeline** at the top — horizontal phase bar +
+   tree for the active phase. Renders the macro state and
+   "you are here" pointer in one glance. Uses the
+   **roadmap timeline** style from `.claude/output-styles.md`.
+2. **Full task tables** below — every phase as a table of every
+   task regardless of state (done / active / backlog), for the
+   reader who needs the data.
+
+The output should be the only thing in the response (no preamble,
+no closing commentary). It needs to render cleanly in Claude
 Code's UI and let the reviewer see "how is Phase N going" at a
 glance.
 
@@ -43,14 +51,43 @@ glance.
 
 4. **Output the document** with this exact structure:
 
-```markdown
-# 📋 Task overview by Phase
+````markdown
+# 📋 Roadmap
 
 <one-line summary>: total tasks · ✅ N done · 🚧 N active · 📋 N backlog (M specs / K stubs)
 
 ---
 
-## Phase 1 — <name from ROADMAP>
+## ⏳ Phase progress
+
+```
+ROADMAP ▏ <quarter or label from ROADMAP.md, or "" if absent>
+
+
+●━━━━━━━━━━●━━━━━━━━━━●─ ─ ─ ─ ─ ─ ○
+phase 1     phase 2     phase 3      phase 4
+done        done        active      planned
+```
+
+### Phase <active-N> · <active phase name>
+
+```
+├─  ✓  TASK-XXX — <title>
+├─  ✓  TASK-YYY — <title>
+├─  ◐  TASK-ZZZ — <title>            ← in progress
+├─  ○  TASK-AAA — <title>
+└─  ○  TASK-BBB — <title>
+```
+
+*(If no active phase, show the next planned phase's tree
+without the `← in progress` pointer. If every phase is done,
+omit the active-phase tree.)*
+
+---
+
+## Full task index
+
+### Phase 1 — <name from ROADMAP>
 
 <one-line phase status>: ✅ shipped / 🚧 in flight / 📋 not started
 
@@ -60,13 +97,13 @@ glance.
 | TASK-YYY | … | 🚧 Active | 📄 Spec | — |
 | TASK-ZZZ | … | 📋 Backlog | 📝 Stub | — |
 
-## Phase 2 — <name>
+### Phase 2 — <name>
 ...
 
-## Phase N — <name>
+### Phase N — <name>
 ...
 
-## Cross-cutting / unphased
+### Cross-cutting / unphased
 
 (Tasks that aren't in any Phase section of the ROADMAP — e.g.
 TASK-000 emulators; bug-fix follow-ups like TASK-033.)
@@ -74,6 +111,34 @@ TASK-000 emulators; bug-fix follow-ups like TASK-033.)
 | ID | Title | State | Type | Notes |
 |---|---|---|---|---|
 | TASK-XXX | … | … | … | … |
+````
+
+**Timeline rendering rules** (per the `roadmap timeline` style
+in `.claude/output-styles.md`):
+
+- `●` filled circle for done or active phases.
+- `━━━` solid connector between done/active phases.
+- `─ ─ ─` dashed connector before the first planned phase.
+- `○` empty circle for planned phases.
+- Phase labels under each circle: name on first row, state
+  (`done` / `active` / `planned`) on second row.
+- `←  in progress` pointer on the row of the in-progress task
+  in the active phase's tree.
+- Tree uses `├─` / `└─` box-drawing characters; state markers
+  `✓` (done), `◐` (in progress), `○` (todo) align in a column.
+
+When phase counts make the bar too wide for typical chat width
+(>~6 phases), break across two lines with a continuation
+arrow, e.g.:
+
+```
+●━━━━━━●━━━━━━●━━━━━━○─ ─ ─ ○ →
+phase 1 phase 2 phase 3 phase 4 phase 5
+done    done    active  planned planned
+
+→ ─ ─ ─ ○─ ─ ─ ○
+        phase 6 phase 7
+        planned planned
 ```
 
 5. **Sort within each phase** by task ID ascending, with

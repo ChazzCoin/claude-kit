@@ -29,6 +29,15 @@ starting work.
 > a gate — every project pulls all files; each work session reads the
 > ones that apply.
 
+> **Output styles reference.** When a skill renders structured
+> output, consult `.claude/output-styles.md` — a catalog of named
+> visual patterns (roadmap timeline, status dashboard, tree
+> breakdown, confidence-tagged findings, two-part report, etc.) with
+> when-to-use / when-not-to-use guidance. Skills cite styles by
+> name; this file is where the pattern lives. Match shape to data,
+> not aesthetic preference. Plain markdown is fine when no catalog
+> style fits.
+
 ## Scope discipline
 
 - One task = one PR. Do not bundle unrelated changes.
