@@ -41,7 +41,10 @@ project that runs `/sync`.
 
 **`bootstrap/`** = one-time files. Init copies them once if they
 don't exist; they belong to the project after that and never get
-overwritten.
+overwritten. **`/sync` will also install new bootstrap templates**
+the kit grows after init — but only if the target file is missing
+locally. Existing project content is never touched. See
+*"Keeping a project current with `/sync`"* below.
 
 ### Platform-prefix naming convention
 
@@ -268,6 +271,43 @@ but it does overwrite `task-rules.md` and `task-template.md`. If
 something went wrong, the integration branch can be deleted and the
 project reverts to its pre-init state (you didn't merge the
 branch yet — you were on `chore/integrate-claude-kit`, right?).
+
+---
+
+## Keeping a project current with `/sync`
+
+`/sync` is two-phase. One command, both phases, every time.
+
+### Phase 1 — Synced kit layer
+
+Skills, `task-rules.md`, conventions, templates under `kit/`.
+Drift is classified (kit-only-changed / both-changed / new /
+removed); the user picks per-file. Local overrides are
+preserved.
+
+### Phase 2 — Bootstrap layer (install-only)
+
+Bootstrap files (`pact.md`, `welcome.md`, `wont-do.md`,
+`playlists.md`, `bookmarks.md`, etc.) are project-content once
+they exist. `/sync` **never overwrites** them. But when the kit
+ships *new* bootstrap templates the project doesn't have yet,
+they're surfaced as installable. User says yes; the template
+copies in with `{{PLACEHOLDER}}` markers preserved.
+
+### CLAUDE.md heads-up (no edits)
+
+When `bootstrap/CLAUDE.md.template` grows new sections (e.g. an
+`@`-import block), `/sync` detects the missing block in the
+project's `CLAUDE.md` and **prints it for manual insertion**.
+The skill never edits `CLAUDE.md` — that file is pure project
+content.
+
+### Chicken-and-egg on first upgrade
+
+If the project's current `/sync` skill predates the two-phase
+behavior, run `/sync` once to pull the upgraded `/sync` skill
+itself (Phase 1 only), then run `/sync` again to get Phase 2.
+One-time setup; subsequent syncs do both phases in one pass.
 
 ---
 

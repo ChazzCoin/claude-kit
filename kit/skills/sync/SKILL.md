@@ -1,6 +1,6 @@
 ---
 name: sync
-description: Reconcile this project's `.claude/` against the upstream claude-kit foundation repo. Fetches the kit at HEAD, diffs every kit-managed file (skills, task-rules, task-template), classifies drift (kit-only updates / both changed / local override / new file / removed file), and proposes per-file pulls. Never auto-commits, never overwrites local overrides without approval, never touches project-content files (CLAUDE.md, PHASES.md, ROADMAP.md, AUDIT.md). Triggered when the user wants to pull foundation updates — e.g. "/sync", "pull latest from claude-kit", "are my skills up to date", "sync the foundation".
+description: Reconcile this project's `.claude/` against the upstream claude-kit foundation repo. Two phases — (1) the synced kit layer (skills, task-rules, templates) where drift is diff'd and pulls proposed; (2) the bootstrap layer where any new bootstrap templates the kit has shipped that don't exist locally yet are surfaced as installable. Existing project-content (CLAUDE.md, PHASES.md, etc.) is never overwritten. When `bootstrap/CLAUDE.md.template` has gained sections the project's CLAUDE.md is missing, surfaces a heads-up with the block to insert. Never auto-commits, never overwrites local overrides without approval. Triggered when the user wants to pull foundation updates — e.g. "/sync", "pull latest from claude-kit", "are my skills up to date", "sync the foundation".
 ---
 
 # /sync — claude-kit foundation sync
@@ -36,15 +36,33 @@ silently merge.
   - **New file in kit** → propose adding.
   - **File removed from kit** → propose removing (deletes are
     destructive — confirm explicitly).
-- **Bootstrap files are off-limits.** Files listed in the kit's
-  `bootstrap/` section (CLAUDE.md, PHASES.md, ROADMAP.md, AUDIT.md,
-  foundation.json) are project-content; this skill never touches
-  them. They're listed here for clarity:
+- **Bootstrap files are off-limits *for overwrite*.** Files listed
+  in the kit's `bootstrap/` section are project-content once they
+  exist; this skill never overwrites them. But the kit can grow
+  *new* bootstrap templates over time (e.g. `pact.md.template`,
+  `welcome.md.template`, `bookmarks.md.template`). For those:
+  - **Bootstrap file exists locally** → leave it. Project owns it.
+  - **Bootstrap file missing locally, kit ships a template** →
+    surface as **installable**. User says yes, the template is
+    copied to the project (preserving `{{PLACEHOLDER}}` markers
+    for the user to fill in).
+  - This makes `/sync` the one-stop command for keeping a project
+    current with the kit, without ever risking project-content
+    overwrites.
+
+  Files always preserved as-is when they already exist:
   - `CLAUDE.md` — project-specific by definition.
   - `tasks/PHASES.md`, `tasks/ROADMAP.md`, `tasks/AUDIT.md` — the
     project's own history.
   - `.claude/foundation.json` — only updated to bump the
     `pinned_sha` and `last_synced` after a successful sync.
+
+- **CLAUDE.md heads-up only — never edit.** When the kit's
+  `CLAUDE.md.template` has gained sections (e.g. the
+  "Auto-loaded primitives" `@`-import block) that the project's
+  CLAUDE.md doesn't have, this skill **surfaces a heads-up** with
+  the suggested block — but does not edit CLAUDE.md. The user
+  inserts manually or routes through `/codify`.
 - **Propose, don't apply by default.** First pass produces a report.
   User approves which changes to apply. Only then does the skill
   copy files.
@@ -94,12 +112,14 @@ and stop. Don't fall back to anything.
 
 ### Step 3 — Read the kit's manifest
 
-Read `$TMP/claude-kit/MANIFEST.json`. The `kit.files` array tells
-this skill what files are kit-managed. Any policy other than
-`directory-mirror` or `file-replace` is treated as "skip — not in
-sync scope" (bootstrap files have other policies).
+Read `$TMP/claude-kit/MANIFEST.json`. Two relevant arrays:
 
-### Step 4 — Diff each kit file against local
+- **`kit.files`** — synced files. Drift here is reconciled in
+  Step 4 (Phase 1).
+- **`bootstrap.files`** — one-time files. Reconciled in Step 4b
+  (Phase 2, install-only).
+
+### Step 4 — Phase 1: Diff each kit file against local
 
 For each kit-managed file:
 
@@ -120,6 +140,35 @@ For each kit-managed file:
 4. If the file is in `overrides`, mark it `local_only_changed` even
    if the hashes match — the user has declared this file
    project-specific.
+
+### Step 4b — Phase 2: Bootstrap reconciliation (install-only)
+
+For each entry in `bootstrap.files`:
+
+1. Read the `to` path (where the file lands in the project).
+2. Check if the target file exists in the project.
+3. Classify:
+   - **bootstrap_present** → file exists locally. Skip. Project
+     owns it. Don't surface.
+   - **bootstrap_installable** → file is missing locally; the kit
+     ships a template for it. Surface as installable.
+
+This is one-way — bootstrap files are only ever *installed* by
+`/sync` if missing. Existing project content is never touched.
+
+**Special case: `CLAUDE.md`.** Beyond the file-existence check,
+also detect *block drift*:
+
+1. Read the kit's `bootstrap/CLAUDE.md.template`.
+2. Read the project's `CLAUDE.md` if present.
+3. Look for known anchor sections in the template that *aren't*
+   in the project. Current anchors to check:
+   - `## 🪡 Auto-loaded primitives` — the `@`-import block for
+     `welcome.md`, `pact.md`, `bookmarks.md`, `wont-do.md`,
+     `docs/notes/INDEX.md`.
+4. If an anchor section is missing in the project, surface as a
+   **CLAUDE.md heads-up** (not an installable). The skill
+   *prints* the block to insert; never edits CLAUDE.md.
 
 ### Step 5 — Render the report
 
@@ -204,6 +253,41 @@ Files the kit removed since your pin. Propose deleting locally.
 
 ---
 
+## 📦 Bootstrap files installable *(missing locally; safe to install)*
+
+Bootstrap templates the kit ships that aren't in this project yet.
+Install copies the template to the project; placeholders stay as
+`{{...}}` for you to fill in. Once installed, the file is yours
+— `/sync` never touches it again.
+
+- **`.claude/<file>`** ← `bootstrap/<template>` *(<one-line
+  description from MANIFEST.json `note`)*
+- …
+
+*(Section omitted if no installables found.)*
+
+---
+
+## 📝 CLAUDE.md heads-up *(no edits made)*
+
+The kit's `CLAUDE.md.template` has sections your project's
+`CLAUDE.md` is missing. **This skill never edits CLAUDE.md** —
+the block is shown for you to insert manually (or route through
+`/codify`).
+
+### Missing section: `<anchor heading>`
+
+```markdown
+<the literal block from the template, ready to paste>
+```
+
+**Where it goes:** typically near the top of `CLAUDE.md`, right
+after the project description.
+
+*(Section omitted if no drift detected.)*
+
+---
+
 ## Bottom line
 
 <2–3 sentences. What's the recommended action? "Apply all 3 safe
@@ -229,6 +313,13 @@ Only after the user picks what to apply:
      touch overrides.
 3. **New files**: copy from kit.
 4. **Removed files**: `git rm` (or just `rm` if not yet tracked).
+5. **Bootstrap installs** (Phase 2): copy `bootstrap/<template>`
+   → the project's `to` path. Preserve `{{PLACEHOLDER}}` markers
+   verbatim — the user fills them in afterward. **Never** install
+   if the target file already exists.
+6. **CLAUDE.md heads-up:** never auto-applied. Just printed in
+   the report. The user inserts the block manually or runs
+   `/codify` with the block as input.
 
 After all approved changes are applied:
 
@@ -244,10 +335,21 @@ where the pin is now:
 ```markdown
 ## ✅ Sync applied
 
+**Phase 1 (synced kit):**
 - 3 files updated: `<paths>`
 - 1 file added: `<path>`
 - 1 conflict deferred: `<path>` (you chose: keep local; added to overrides)
-- Pin bumped: `<old>` → `<new>`
+
+**Phase 2 (bootstrap):**
+- 2 templates installed: `<paths>` *(placeholders left for you to fill)*
+- *(or "no installable bootstrap files this round")*
+
+**CLAUDE.md heads-up:**
+- 1 missing section flagged: `<anchor>` — block printed above for
+  manual insertion, or run `/codify` to land it.
+- *(or "CLAUDE.md is up to date with the template")*
+
+**Pin bumped:** `<old>` → `<new>`
 
 `.claude/foundation.json` updated. Run `git diff` to review,
 commit when ready.
@@ -257,6 +359,12 @@ commit when ready.
 
 - **Don't auto-commit.** Same rule as every other skill that
   modifies files.
+- **Don't overwrite existing bootstrap files.** Phase 2 only
+  *installs* missing ones. If the target file exists, leave it.
+- **Don't edit CLAUDE.md.** Even when the kit's template has
+  drifted ahead of the project's CLAUDE.md, this skill never
+  edits CLAUDE.md — it surfaces a heads-up with the block to
+  insert manually.
 - **Don't touch project-content files.** CLAUDE.md, PHASES.md,
   ROADMAP.md, AUDIT.md, the project's own task specs in
   `tasks/{backlog,active,done}/` — never. Overwriting any of these
@@ -286,6 +394,12 @@ commit when ready.
   ask the user to confirm wholesale adoption, then stamp the pin.
 - **Kit changed file moved or renamed.** Treat as remove + add.
   This is rare and the kit should avoid renames.
+- **Bootstrap upgrade after the kit's first /sync that ships an
+  upgraded /sync skill.** Chicken-and-egg case: the user's
+  current `/sync` doesn't know about Phase 2 yet. After the
+  first Phase 1 pull (which updates the `/sync` skill itself),
+  ask the user to run `/sync` again to pick up the new
+  bootstrap reconciliation behavior. One time only.
 
 ## When NOT to use this skill
 
@@ -299,10 +413,16 @@ commit when ready.
 
 ## What "done" looks like for a /sync session
 
-- A clear report of kit drift, classified.
-- The user picks what to take.
-- Approved files are applied to the working tree, uncommitted.
+- A two-phase report: kit drift (Phase 1) classified; bootstrap
+  installables and CLAUDE.md heads-up (Phase 2) listed.
+- The user picks what to take. Approved Phase 1 changes are
+  applied; approved Phase 2 installs land template content
+  (placeholders preserved); CLAUDE.md heads-up is printed for
+  manual insertion (never auto-edited).
 - The pin in `.claude/foundation.json` is bumped to the kit's
   current HEAD.
-- A closing summary tells the user what was applied and what to do
-  next (typically: `git diff` + commit).
+- A closing summary tells the user what was applied across both
+  phases and what to do next (typically: fill in any
+  `{{PLACEHOLDER}}` markers in installed templates, optionally
+  insert any flagged CLAUDE.md sections, then `git diff` +
+  commit).
