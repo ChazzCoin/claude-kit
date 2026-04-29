@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Snapshot in-flight project context into a single durable doc that another contributor (or future-you in six months) can pick up cold. Captures active branches, dirty working tree, in-flight tasks, blockers, recent decisions, recent postmortems, and the things you almost figured out before stepping away. Output lands at `docs/handoff/<YYYY-MM-DD>.md`. Distinct from `/onboard` (which assumes a stable, documented project) — `/handoff` is for in-flight handovers when things are unfinished. Triggered when the user is stepping away mid-project — e.g. "/handoff", "I'm going on leave", "snapshot the context", "create a handoff doc", "package what I know for the next person".
+description: Snapshot in-flight project context into a single durable doc that another contributor (or future-you in six months) can pick up cold. Captures active branches, dirty working tree, in-flight tasks, blockers, recent decisions, recent postmortems, and the things you almost figured out before stepping away. Output lands at `docs/handoff/<YYYY-MM-DD>.md` AND a tight 10-15 line summary at `.claude/welcome.md` (the file Claude reads on session start). Distinct from `/onboard` (which assumes a stable, documented project) — `/handoff` is for in-flight handovers when things are unfinished. Triggered when the user is stepping away mid-project — e.g. "/handoff", "I'm going on leave", "snapshot the context", "create a handoff doc", "package what I know for the next person".
 ---
 
 # /handoff — Snapshot in-flight context for a clean handover
@@ -16,9 +16,15 @@ proportional to its honesty about the messy parts.
 
 ## Behavior contract
 
-- **Writes durable docs only.** Output lands at
-  `docs/handoff/<YYYY-MM-DD>.md`. No source-code edits. Never
-  auto-commits.
+- **Writes durable docs only.** Two outputs per run:
+  1. **Deep snapshot** at `docs/handoff/<YYYY-MM-DD>.md` — the
+     full multi-section handoff doc.
+  2. **Welcome rewrite** at `.claude/welcome.md` — a tight
+     10-15 line "where you left off" summary. This is the file
+     Claude reads on session start (via the CLAUDE.md `@`-import).
+     Always rewritten in full on each `/handoff` run.
+
+  No source-code edits. Never auto-commits.
 - **Read multiple sources, synthesize one doc.** A handoff is
   not a doc dump — it's a curated synthesis. Pull from git
   state, tasks/, docs/decisions/, docs/postmortems/, and
@@ -89,12 +95,52 @@ knowledge not captured this round").
 Write to `docs/handoff/<YYYY-MM-DD>.md` using the **Output
 structure** below.
 
-### Step 4 — Closing summary
+### Step 4 — Rewrite `.claude/welcome.md`
+
+Always rewrite (don't append) `.claude/welcome.md` with a tight
+summary derived from the same inputs. Keep it under ~15 lines.
+This is what future Claude sessions read on start.
+
+```markdown
+# 👋 Welcome back
+
+> First thing read on session start. Auto-updated by `/handoff`.
+> For the deep snapshot, see [most recent handoff in `docs/handoff/`].
+
+## Where I left off
+
+<2-3 sentences from "What were you in the middle of" + state.>
+
+## Heads up
+
+- <one or two sharp-edge items, terse>
+
+## Active branch
+
+- `<branch>` — `<short SHA>` *(working tree: clean / dirty: <N> files)*
+
+## Open PRs / in-flight tasks
+
+- <#NNN — title> *(if any)*
+- <TASK-NNN — title>
+
+---
+
+*Last updated by `/handoff` on <YYYY-MM-DD>. Deep snapshot:
+[`docs/handoff/<YYYY-MM-DD>.md`](../docs/handoff/<YYYY-MM-DD>.md).*
+```
+
+If `.claude/welcome.md` doesn't exist yet (project pre-dates the
+welcome.md template), create it.
+
+### Step 5 — Closing summary
 
 ```markdown
 # 📨 Handoff snapshot written
 
-`docs/handoff/<YYYY-MM-DD>.md` — <line count> lines.
+- **Deep snapshot.** `docs/handoff/<YYYY-MM-DD>.md` — <line count> lines.
+- **Welcome.** `.claude/welcome.md` — rewritten (~<line count> lines).
+  Future sessions read this on start.
 
 **The three things most worth knowing:**
 1. <terse>
@@ -334,8 +380,14 @@ handoff is dated and additive.*
 
 ## What "done" looks like for a /handoff session
 
-A single dated markdown file at `docs/handoff/<YYYY-MM-DD>.md`,
-honest about state, capturing both doc-driven state and tacit
-knowledge the user surfaced. Uncommitted. The user knows the
-next person can read this file plus `CLAUDE.md` and pick up
-where you left off — without you in the room.
+Two artifacts on disk, uncommitted:
+1. The deep dated snapshot at `docs/handoff/<YYYY-MM-DD>.md`
+   — full state, doc-driven + tacit knowledge.
+2. A rewritten `.claude/welcome.md` (~15 lines) that future
+   Claude sessions auto-load on start via the CLAUDE.md
+   `@`-import.
+
+The user knows the next person (or next session) can read
+`.claude/welcome.md` for the quick orient, then drill into
+`docs/handoff/<YYYY-MM-DD>.md` for the deep state — without
+you in the room.
