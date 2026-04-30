@@ -29,6 +29,32 @@ starting work.
 > a gate — every project pulls all files; each work session reads the
 > ones that apply.
 
+## Vocabulary
+
+Operational terms used across this doc, the skills, and chat. When
+these words appear in a request, they mean exactly this — no
+broader, no narrower.
+
+- **Batch** — *a phase of tasks.* A "batch" is the set of tasks
+  in one named phase from `tasks/ROADMAP.md`. "Working through a
+  batch" = working through a phase. Not "any group of PRs." Not
+  "a sprint." A phase. The `/spec-phase` skill prepares a batch;
+  the Batch handoff section below ships one. If the user says
+  "let's batch up Phase N," they mean "treat Phase N's tasks as
+  the unit of work."
+
+- **Tag and bag** — *do everything needed to deploy everything
+  ready right now.* Specifically: merge all branches that are
+  ready for deployment into the release branch (via the Batch
+  handoff integration flow if multiple are pending), build if
+  the deploy command requires it, run the deploy, tag the
+  resulting commit with an annotated semver tag, push the tag,
+  and append the AUDIT entry. Equivalent to invoking `/release`
+  once the queue is ready. Not "just tag the current commit."
+  Not "just deploy without tagging." It's the full pipeline. If
+  the user says "tag and bag," they're authorizing the whole
+  release flow on whatever is currently green.
+
 ## Scope discipline
 
 - One task = one PR. Do not bundle unrelated changes.
