@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-kit/manifest.schema.json",
   "name": "claude-kit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Portable Claude Code foundation — skills, rules, and templates that work across any repo, any language, any platform.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-kit",
@@ -137,6 +137,8 @@
       "docs/blast-radius",
       "docs/scope",
       "docs/exports",
+      "docs/proto",
+      "docs/mvp",
       ".claude/tradeoffs",
       ".claude/inbox"
     ]

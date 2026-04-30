@@ -14,6 +14,56 @@ human-readable rollback).
 
 ---
 
+## v0.4.0 — 2026-04-30
+
+### Added
+
+- **`kit/skills/prototype/`** — new skill for rapid R&D mode.
+  Isolates the work into a `proto/<slug>` branch off the user's
+  current branch, ignores ROADMAP / PHASES / backlog entirely,
+  and runs a four-step loop: gather → plan → do (one task if
+  possible) → present for review. Speed-optimized: no tests by
+  default, light code review, reuse over new code, no new
+  dependencies without naming the alternative. Always leaves a
+  `docs/proto/<slug>.md` doc behind so the throwaway has a
+  paper trail even if shelved. Surfaces the
+  speed-over-discipline tradeoff at session start so the user
+  enters with eyes open. Pairs with `/task` (graduate path
+  when a prototype proves out).
+- **`kit/skills/mvp/`** — new skill for product-level MVP
+  scoping. Slow, deliberate planning mode for greenfield apps
+  or major features. Five-step flow: gather (product, user,
+  problem, shippable / marketable definition, constraints) →
+  define MVP boundary (in / deferred / anti-features) → phase
+  the work → bootstrap the full planning bundle (`docs/mvp/<slug>.md`,
+  populated `tasks/ROADMAP.md` and `tasks/PHASES.md`, stub
+  task files in `tasks/backlog/`, optional `CLAUDE.md` /
+  rule-update proposals) → iterate or close. Sits above
+  `/plan` (which assumes phases exist) and `/spec-phase`
+  (which assumes stubs exist). Push-back built in for
+  vague users, padded scope, or "shippable = doesn't crash."
+- **Scaffold dirs**: `docs/proto/` and `docs/mvp/` added to
+  `MANIFEST.json` so existing projects pick them up via
+  `/sync` and new projects get them at init.
+
+### Changed
+
+- `MANIFEST.json` version `0.3.0` → `0.4.0`. No structural
+  changes — the `kit.files` directory-mirror on `kit/skills/`
+  picks up both new skills automatically; only the scaffold
+  list grew.
+
+### Did not change
+
+- Bootstrap files. CLAUDE.md / PHASES.md / ROADMAP.md /
+  AUDIT.md templates are unaffected.
+- `bin/init`. New skills come along with the existing
+  `kit/skills/` mirror.
+- Existing skills. `/prototype` and `/mvp` are additive and
+  don't modify any sibling skill's behavior.
+
+---
+
 ## v0.3.0 — 2026-04-28
 
 ### Added
