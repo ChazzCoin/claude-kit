@@ -14,6 +14,156 @@ human-readable rollback).
 
 ---
 
+## v0.5.0 — 2026-05-01
+
+Bundles four post-v0.4.0 merges that shipped without a version bump
+(`/wrangle`, the 10-skill batch, `/lessons`+`/retro`, the primitive
+layer). The kit goes from 21 to 36 universal skills + 1 platform skill,
+and gains a new "primitives" tier of bootstrap templates. Also
+reconciles the README skills table, which had drifted since v0.3.0
+(missing `/spec-phase`, `/prototype`, `/mvp` even at v0.4.0).
+
+### Added
+
+#### Skills — read & assess
+- **`/wrangle`** — two-phase: read-only audit producing durable refs
+  under `docs/wrangle/` plus a Claude-targeted `.claude/context/project-map.md`,
+  followed by a consent-gated cleanup plan. For inheriting an unfamiliar
+  codebase.
+- **`/blast-radius`** — pre-mortem a destructive change. Scans direct
+  references, indirect references, tests, docs, deploys, external
+  surfaces; saves a confidence-tagged report to `docs/blast-radius/`.
+- **`/scope-check`** — counter to estimate optimism. Measures actual
+  file/test/consumer surface area of a planned change vs the user's
+  stated size. Saves to `docs/scope/`.
+- **`/glossary`** — generate or sync `docs/glossary.md` from README,
+  CLAUDE.md, schema files, and prevalent code identifiers.
+- **`/export-project`** — single beautifully-formatted markdown export
+  summarizing identity, stack, architecture, data model, current
+  phase, in-flight work. Saves to `docs/exports/`.
+
+#### Skills — capture & reflect
+- **`/handoff`** — snapshot in-flight context. Writes to
+  `docs/handoff/<date>.md` AND a tight ~15-line summary at
+  `.claude/welcome.md` (the file Claude reads on session start).
+- **`/lessons`** — per-task introspective sub-agent. Extracts durable
+  learnings, writes to `docs/notes/<date>-<slug>.md`, appends a
+  one-liner to `docs/notes/INDEX.md`. CLAUDE.md @-imports INDEX.md so
+  prior notes load on every session start.
+- **`/retro`** — longitudinal retrospective over a date window
+  (default 2w). Synthesizes across `docs/notes/`, `tasks/done/`,
+  `docs/decisions/`, `docs/postmortems/`, `docs/regrets/`,
+  `docs/audits/`, and the git log. Pairs with `/loop` for cadence.
+- **`/regret`** — architectural hindsight on a *choice*, distinct
+  from `/postmortem` (incident-focused). Saves to `docs/regrets/`.
+- **`/codify`** — capture a rule that emerged in conversation into
+  project `CLAUDE.md` or kit `task-rules.md` (via `/contribute` PR).
+  Confirms wording and scope before applying.
+
+#### Skills — coordination
+- **`/inbox`** — multi-dev messaging plus personal scratchpad.
+  Identity from `git config user.name`. Recipients pick up messages
+  on their next `git pull` + `/inbox`. Lower bar than `/task`,
+  higher coordination value than a private TODO.
+- **`/brainstorm`** — open or resume a tradeoff session at
+  `.claude/tradeoffs/<topic>.md`. Living markdown that accumulates
+  ideas, options, pros/cons, dated session logs. When a brainstorm
+  converges, routes to `/decision` for the durable record.
+
+#### Skills — kit-level meta
+- **`/new-skill`** — scaffold a new skill with the kit's canonical
+  shape (frontmatter triggers, behavior contract, output structure,
+  what-NOT-to-do, when-NOT-to-use, "done" definition).
+- **`/contribute`** — package a local edit to a kit-managed file
+  into a PR back to claude-kit. Detects drift, classifies portable
+  vs project-specific, drafts PR title + body. Closes the kit ↔
+  project loop.
+- **`/rule-promote`** — find rules that have crystallized in two or
+  more projects' `CLAUDE.md` files; propose them for graduation to
+  kit-level `task-rules.md`. Routes through `/contribute` for the
+  PR.
+
+#### Bootstrap templates — the primitive layer
+Five small files that change how the project feels without bloating
+the skill catalog. All `skip-if-exists` (user owns them after init).
+
+- **`pact.md`** — personal working-relationship contract with Claude.
+  Distinct from CLAUDE.md (project facts vs personal contract).
+  Portable across repos.
+- **`welcome.md`** — first-thing-on-session-start file. Auto-updated
+  by `/handoff`.
+- **`wont-do.md`** — anti-feature list. Closed conversations the
+  project has decided against.
+- **`playlists.md`** — curated skill chains for routine moments
+  (morning ritual, end-of-day, weekly, pre-release).
+- **`bookmarks.md`** — curated path:line treasure map for fast
+  orientation.
+
+#### Scaffold dirs
+Init now scaffolds the durable-output destinations every new skill
+writes to: `docs/notes/`, `docs/audits/`, `docs/handoff/`,
+`docs/regrets/`, `docs/retros/`, `docs/blast-radius/`, `docs/scope/`,
+`docs/exports/`, `docs/proto/`, `docs/mvp/`, `.claude/tradeoffs/`,
+`.claude/inbox/`.
+
+### Changed
+
+- **`/audit`** — now persists each report to
+  `docs/audits/<date>-<slug>.md` so audits accumulate as durable
+  project history future sessions can reference (rather than living
+  only in chat).
+- **`/wrangle`** Phase 1 — additionally writes
+  `.claude/context/project-map.md` (tight Claude-targeted index into
+  `docs/wrangle/`) and offers, with consent, to draft `CLAUDE.md`
+  from audit findings when missing or stub. Future Claude sessions
+  land cold with project context already loaded.
+- **`/handoff`** — also rewrites `.claude/welcome.md` (~15 lines) on
+  every run. Makes the "auto-updated on handoff" promise real.
+- **`bootstrap/CLAUDE.md.template`** — added an "Auto-loaded
+  primitives" section with `@`-imports for `welcome.md`, `pact.md`,
+  `bookmarks.md`, `wont-do.md`, and `docs/notes/INDEX.md`. Fresh
+  projects load the primitive layer on every session by default.
+- **`MANIFEST.json`** version `0.4.0` → `0.5.0`. Bootstrap entries
+  added for the 5 primitive templates; scaffold list expanded for
+  the new docs/ subdirs and `.claude/{tradeoffs,inbox}/`.
+
+### Did not change
+
+- `kit/task-rules.md`, `kit/ios-task-rules.md`, `kit/web-task-rules.md`,
+  `kit/ios-conventions.md`, `kit/task-template.md`. Untouched.
+- Bootstrap `CLAUDE.md.template` apart from the auto-loaded
+  primitives section. `PHASES.md`, `ROADMAP.md`, `AUDIT.md`,
+  `foundation.json` templates are unchanged.
+
+### Known gap
+
+- **`bin/init` is out of sync with `MANIFEST.json`.** New skills
+  flow through the `kit/skills/` directory-mirror correctly, but
+  `bin/init` has a hardcoded list for bootstrap templates (only the
+  original 4: `CLAUDE.md`, `PHASES.md`, `ROADMAP.md`, `AUDIT.md`)
+  and scaffold dirs (only `tasks/{backlog,active,done}` +
+  `docs/{decisions,postmortems}`). Fresh projects today **do not
+  receive the 5 primitive templates** (`pact.md`, `welcome.md`,
+  `wont-do.md`, `playlists.md`, `bookmarks.md`) or the 11 new
+  scaffold dirs (`docs/notes/`, `docs/audits/`, `docs/handoff/`,
+  `docs/regrets/`, `docs/retros/`, `docs/blast-radius/`,
+  `docs/scope/`, `docs/exports/`, `docs/proto/`, `docs/mvp/`,
+  `.claude/tradeoffs/`, `.claude/inbox/`). Existing projects on
+  `/sync` are unaffected (sync respects `skip-if-exists`). Fix
+  tracked as a follow-up: teach `bin/init` to read
+  `MANIFEST.json`, or extend its hardcoded lists.
+
+### Counts
+
+| | v0.4.0 | v0.5.0 |
+|---|---|---|
+| Universal skills | 21 | 36 |
+| Platform skills | 1 | 1 |
+| Bootstrap templates | 5 | 10 |
+| Scaffold dirs | 4 | 16 |
+
+---
+
 ## v0.4.0 — 2026-04-30
 
 ### Added
