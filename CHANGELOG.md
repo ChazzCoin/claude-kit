@@ -189,6 +189,46 @@ Step 3 now delegates to the full `/task` Operation 3 recon flow
 the cost upfront when phases are large: *"7 stubs × ~10–20 min
 recon each = an hour or two. Spec all 7 or pick a subset?"*
 
+#### `/task` Operation 3 — Step 3.8 user-context check (added)
+
+After drafting the spec, before showing for sign-off, the skill
+now scans for **judgment calls only the user can make** —
+business / product decisions, UX preferences, equally-valid
+technical paths, real-world edge cases, outside-the-codebase
+constraints. Surfaces them as explicit questions before
+finalizing, so the implementing developer doesn't have to
+re-ask later. *"No user-context questions"* is a valid answer
+when the spec is fully grounded in code + docs.
+
+Old Step 3.8 (show / sign-off / write) renumbered to Step 3.9.
+
+#### `/wrangle` — dependency inventory (new area #13)
+
+Phase 1 now produces `docs/wrangle/13-dependencies.md` — every
+external library, SDK, package, and third-party service the
+project uses, parsed from every manifest in the repo
+(`package.json`, `Package.swift`, `Podfile.lock`,
+`requirements.txt`, `pyproject.toml`, `build.gradle*`,
+`Gemfile.lock`, `go.mod`, `Cargo.lock`, etc.). Three sections:
+libraries (vendored code), third-party services (runtime
+integrations), dev/build/CI tools. Each row carries the
+official doc URL.
+
+This file becomes the **starting list** for `/task` Operation
+3's external reconnaissance — when speccing a task that
+touches Realm or Kingfisher or AVKit, /task knows where to
+WebFetch from without re-discovering.
+
+`.claude/context/project-map.md` tech stack section now also
+includes per-entry doc URLs and links to the full inventory.
+
+#### `/audit` — external libraries section (added to Part 1)
+
+Audit reports now include an "External libraries used in this
+slice" table — every external library / SDK / service used in
+the audited code, with version + purpose + doc URL. Per-slice
+scope (not the whole project — that's `/wrangle`'s job).
+
 #### `/skills/new-skill/SKILL.md`
 
 Skeleton requires future skills to pin a catalogue §-entry from

@@ -100,6 +100,16 @@ in a CLI tool) — note the absence rather than padding.
     discipline.
 12. **Smells & risks.** Verified concerns from reading the code —
     not vibes. Each item cites `file_path:line_number`.
+13. **Dependency inventory.** Every external library, SDK,
+    package, and third-party service the project uses, with
+    versions, purposes, and official doc URLs. Parsed from
+    every manifest file in the repo (`package.json`,
+    `Package.swift`, `Podfile.lock`, `requirements.txt`,
+    `pyproject.toml`, `build.gradle*`, `Gemfile.lock`,
+    `go.mod`, `Cargo.lock`, etc.). This file becomes the
+    **starting reference for future task work's external
+    reconnaissance** (per `/task` Operation 3, which fetches
+    current docs from these sources before drafting specs).
 
 ### Where to write
 
@@ -121,6 +131,7 @@ docs/wrangle/
   10-tests.md
   11-build-deploy.md
   12-smells-and-risks.md
+  13-dependencies.md          # external libs / SDKs / services + doc URLs
   questions.md                # things you couldn't verify
 ```
 
@@ -155,6 +166,72 @@ system. If the boundary is fuzzy, say so.>
 code. Each item ≤1 line. If empty, omit the section.>
 ```
 
+### `docs/wrangle/13-dependencies.md` shape
+
+This file uses a different shape — tabular, optimized for
+future task work to look up doc URLs quickly. Build it by
+parsing every manifest in the repo and capturing each
+external dependency.
+
+```markdown
+# Dependencies & external services
+
+> **For future task work.** When `/task` does external
+> reconnaissance (per `/task` Operation 3, Step 3.3), this file
+> is the starting list of doc URLs to fetch. Keep it current —
+> re-run `/wrangle` after major dep changes.
+
+**Audited at.** `<short SHA>` on <YYYY-MM-DD>
+**Manifest sources read.** <list paths: `package.json`,
+`Package.swift`, etc.>
+
+## Libraries & frameworks (vendored code we link)
+
+Pulled from the project's package manifests. Skip stdlib /
+trivial helpers — focus on load-bearing deps.
+
+| Library | Version | Used for | Docs |
+|---|---|---|---|
+| `<name>` | `<version>` | <one-line purpose in this project> | <full doc URL> |
+| `<name>` | `<version>` | <purpose> | <URL> |
+
+*(Examples per stack — adapt to what the project actually uses:*
+- *iOS — SwiftUI, Combine, AVKit, Realm, Kingfisher, Alamofire*
+- *Android — Jetpack Compose, Room, Hilt, Coroutines, Coil*
+- *Web — React, Next.js, Vue, axios, Tailwind, shadcn*
+- *Python — Flask, FastAPI, Django, SQLAlchemy, Pydantic*
+- *Cross-cutting SDKs — Firebase, Stripe, OpenAI, Anthropic SDK)*
+
+## Third-party services & APIs (runtime integrations)
+
+Services the running app calls — usually paired with an SDK
+above (Firebase has both an SDK and a service surface; OpenAI
+has both). List the service-side facts: what we call, what
+endpoints, what we depend on.
+
+| Service | Used for | Docs |
+|---|---|---|
+| <name> | <purpose — auth / storage / analytics / etc.> | <URL> |
+| <name> | <purpose> | <URL> |
+
+## Dev / build / CI dependencies
+
+Tools that don't ship with the app but matter for development.
+Test runners, build tools, linters, CI utilities, formatters.
+
+| Tool | Version | Purpose | Docs |
+|---|---|---|---|
+| <name> | <version> | <purpose> | <URL> |
+
+## Notes
+
+<2–4 bullets — anything worth flagging:*
+- *deprecated deps*
+- *deps with known security advisories*
+- *deps locked to old versions for compat reasons*
+- *missing doc URLs for in-house libs (link the source)*
+```
+
 ### `docs/wrangle/README.md` shape
 
 ```markdown
@@ -180,7 +257,8 @@ code. Each item ≤1 line. If empty, omit the section.>
 10. [Tests & verification](10-tests.md)
 11. [Build, deploy, environments](11-build-deploy.md)
 12. [Smells & risks](12-smells-and-risks.md)
-13. [Open questions](questions.md)
+13. [Dependency inventory](13-dependencies.md)
+14. [Open questions](questions.md)
 
 ## What I couldn't audit
 
@@ -213,10 +291,12 @@ writes `.claude/context/project-map.md`:
 
 ## Tech stack
 
-- <Language + runtime>
-- <Framework(s)>
-- <DB / persistence>
-- <Other load-bearing deps>
+- **<Language + runtime>** — [docs](URL)
+- **<Framework(s)>** — [docs](URL)
+- **<DB / persistence>** — [docs](URL)
+- **<Other load-bearing deps>** — [docs](URL)
+
+*(Full inventory with versions: [`docs/wrangle/13-dependencies.md`](../../docs/wrangle/13-dependencies.md))*
 
 ## Where execution starts
 

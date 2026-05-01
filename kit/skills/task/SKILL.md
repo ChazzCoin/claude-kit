@@ -261,11 +261,65 @@ Inline the recon report's findings:
 - "Open questions / risks" carries forward any unresolved
   items from the recon report.
 
-#### Step 3.8 — Show, sign-off, write
+#### Step 3.8 — User-context check (judgment calls only the user can make)
 
-Render the full spec; the user confirms or pushes back. On
-confirmation, write to `tasks/backlog/<file>.md` overwriting
-the stub. Don't commit.
+Before the final sign-off, scan your draft for **judgment calls
+that depend on user knowledge** — things the code doesn't say,
+the docs don't say, and you can't decide on your behalf. Every
+unresolved judgment call here is a question the implementing
+developer would otherwise ask the user later. Capture it now.
+
+Common categories:
+
+- **Business / product decisions.** Naming, copy, behavior
+  preferences, prioritization between equally valid options.
+  *"We could call this 'archive' or 'hide' — which fits the
+  product voice?"*
+- **UX / interaction preferences.** Animation, density, error
+  message tone, defaults, keyboard shortcuts.
+  *"Tap-and-hold or long-press to delete? The existing pattern
+  is split."*
+- **Trade-offs between equivalent technical paths.** When two
+  patterns work and recon found both being used.
+  *"This area uses both Combine and async/await. New code
+  should follow which?"*
+- **Real-world edge cases.** Behavior that depends on
+  customer / user behavior the code can't tell you.
+  *"What happens when a user has 10,000 inspections? Is
+  pagination required for the MVP, or acceptable to do later?"*
+- **Constraints from outside the repo.** Customer agreements,
+  deployment timing, integration contracts with other teams.
+  *"Does this need to be feature-flagged because the iOS app
+  needs to land first?"*
+
+For each unresolved item, ask explicitly. Don't assume.
+Don't decide on the user's behalf. Format:
+
+```markdown
+## User-context questions before I finalize this spec
+
+1. <specific question with two or three concrete options
+   to choose between>
+2. <specific question, with what's at stake if we pick wrong>
+3. ...
+
+If everything's settled, just say "good, finalize."
+```
+
+Wait for answers (or "good, finalize"). Bake the answers into
+the spec — typically into Acceptance criteria, Test plan, or
+Open questions sections.
+
+If the spec genuinely has no judgment calls left (everything is
+grounded in code + docs), say so explicitly: *"No user-context
+questions — all decisions grounded in recon. Finalizing."*
+Don't fabricate questions to look thorough.
+
+#### Step 3.9 — Show, sign-off, write
+
+Render the full spec (now with user-context answers baked in);
+the user confirms or pushes back. On confirmation, write to
+`tasks/backlog/<file>.md` overwriting the stub. Don't commit.
 
 ### Operation 4 — Reprioritize within a phase
 

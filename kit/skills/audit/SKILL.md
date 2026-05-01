@@ -99,6 +99,24 @@ short list>
 firebase/IO, hooks, components, routing, styling. Skip layers that
 aren't present.)*
 
+### External libraries used in this slice
+
+Document every external library, SDK, or third-party service
+used in the audited code. Future task work targeting this area
+will need to fetch current docs for these — capture the URLs
+now so the next session doesn't re-discover.
+
+| Library | Version | Used for | Docs |
+|---|---|---|---|
+| `<name>` | `<version>` | <one-line purpose in this slice> | <full doc URL> |
+| `<name>` | `<version>` | <purpose> | <URL> |
+
+Cite the version from the project's manifest (`package.json`,
+`Package.swift`, `requirements.txt`, `build.gradle`, etc.).
+For the doc URL, prefer the official source — Apple developer
+docs, Android developer docs, package homepage. Skip the row
+if a library's only used trivially (e.g. a stdlib helper).
+
 ---
 
 ## Part 2 — Honest assessment
