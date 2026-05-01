@@ -97,24 +97,36 @@ confirm before starting.
 
 ### Step 3 — Expand each stub, one at a time
 
-For each stub, in the order the phase lists them in ROADMAP.md:
+For each stub, in the order the phase lists them in ROADMAP.md,
+**run the full `/task` Operation 3 flow** — not just the
+questions. That includes:
 
-1. **Read the stub.** State its title and one-line user story.
-2. **Walk the user through the spec template.** Same questions
-   `/task` Operation 3 asks:
-   - Refined user story (who / what / why)?
-   - In-scope / out-of-scope?
-   - References (source code, models, existing patterns)?
-   - Files expected to change?
-   - Acceptance criteria?
-   - Test plan shape?
-   - Open questions / risks?
-3. **Render the full spec** using `task-template.md`'s shape.
-4. **Show the rendered spec** and ask for sign-off ("looks
-   good", "tweak X", or "skip this one — leave it as a stub").
-5. **On sign-off, write to disk** at the existing
-   `tasks/backlog/<file>.md` (overwrite the stub).
-6. **Move to the next stub.**
+- **Internal reconnaissance** — read CLAUDE.md, the stub,
+  referenced files, existing patterns, likely-touched files.
+- **External reconnaissance** — fetch current official
+  documentation (`developer.apple.com`, `developer.android.com`,
+  `react.dev`, framework docs, etc.) for the APIs this task
+  will touch. Don't draft framework code from memory.
+- **Synthesize a recon report** — show the user what you
+  found before drafting.
+- **Requirements drilling** — sharpen acceptance bar, edge
+  cases, constraints, test scenarios.
+- **Per-file rationale** — what changes WHERE and WHY.
+- **Draft the full spec** via `task-template.md`.
+- **Show, sign-off, write** to `tasks/backlog/<file>.md`.
+
+See `/task` Operation 3 for the detailed sub-steps and concrete
+doc-source examples per platform.
+
+This is **heavier than the original `/spec-phase` flow**.
+That's intentional — Chazz's task-builder→task-developer
+discipline means the up-front recon is where the value lands.
+Surface the cost when the phase is large: *"This phase has 7
+stubs. Full recon per stub means ~10–20 min per task; this
+session will likely take an hour or two. Want to spec all 7
+or pick a subset?"*
+
+After each spec is written, move to the next stub.
 
 If the user pauses or breaks the session, leave the partially-
 specced files in place. They're already saved. The session
