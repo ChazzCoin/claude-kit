@@ -36,6 +36,18 @@
         "note": "Universal execution rules. Project-specific commands come from CLAUDE.md."
       },
       {
+        "from": "kit/output-rules.md",
+        "to": ".claude/output-rules.md",
+        "policy": "file-replace",
+        "note": "Selection and composition rules for structured outputs. Maps kit scenarios (status, release, audit, backlog, etc.) to specific templates in output-styles.md. Read alongside task-rules.md."
+      },
+      {
+        "from": "kit/output-styles.md",
+        "to": ".claude/output-styles.md",
+        "policy": "file-replace",
+        "note": "Catalogue of 34 structured-output templates (hero card, dashboard, roadmap, deployment report, severity audit, etc.) with consistent glyph vocabulary. Skills reference this file by §-number."
+      },
+      {
         "from": "kit/ios-task-rules.md",
         "to": ".claude/ios-task-rules.md",
         "policy": "file-replace",

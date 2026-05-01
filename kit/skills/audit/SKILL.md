@@ -48,12 +48,26 @@ on a slice without re-doing the work.
 
 ## Output structure
 
+**Catalogue entry.** §6 Severity audit (primary, for the Findings
+section) + markdown prose for Part 1 architectural breakdown,
+"What's working" praise, Tradeoffs, and Bottom line. Code snippets
+in Part 1 are normal ```<lang>``` fenced blocks.
+
+**Note on structure shift.** The prior 3 buckets (✅ working /
+⚠️ shaky / 🚧 gaps) collapse into 2 sections: "What's working"
+(praise, plain bullets) and "Findings" (§6 severity tiers —
+CRITICAL / HIGH / MEDIUM / LOW). The severity tier replaces the
+shaky-vs-gap distinction with a more useful axis: how badly does
+this hurt? A "gap" can be HIGH (security hole) or LOW (nice to
+have); a "smell" can be HIGH (likely to break) or LOW (cosmetic).
+Severity calibrates honesty better than category does.
+
 Render exactly this shape. The whole report is the response — no
 preamble like "Here's the audit", no closing "let me know if you
 want…". The first heading is the deliverable.
 
-```markdown
-# 🔍 Audit — <target>
+````markdown
+# Audit — <target>
 
 > **TL;DR.** <one sentence on the overall read. Not "looks good" —
 > something specific. e.g. "Solid read-side, write-side is half-built
@@ -89,23 +103,50 @@ aren't present.)*
 
 ## Part 2 — Honest assessment
 
-### ✅ What's working
+### What's working
 
 - **<short claim>** — <one-line why it's good, ideally with a file
   reference>
 - …
 
-### ⚠️ What's shaky
+*(Praise, plain bullets. No catalogue ornament — what's good
+doesn't need a severity tier.)*
 
-- **<short claim>** — <one-line why, with file reference. Be specific:
-  "duplicates X across 3 files" beats "could be cleaner">
-- …
+### Findings
 
-### 🚧 Gaps / missing pieces
+```
+▌ CRITICAL  ·  src/firebase/queries.ts:42
+  useInspections joins notes by inspectionFormId but writes them
+  under inspectionFormField — every note silently lost
+  └─ fix the field name mismatch in writeNote
 
-- **<thing that isn't there but probably should be>** — <why it
-  matters>
-- …
+▌ HIGH      ·  src/components/Form.tsx:108
+  duplicates validation logic across 3 files
+  └─ extract to shared schema
+
+▌ MEDIUM    ·  src/hooks/useAuth.ts:15
+  no error boundary around auth state
+  └─ add fallback for null user
+
+▌ LOW       ·  src/utils/format.ts:88
+  inconsistent date format ("2026/04/30" vs "2026-04-30")
+  └─ standardize on ISO
+```
+
+*(§6 Severity audit format. Severity calibration:*
+- *CRITICAL — bug, security issue, data loss/corruption, app
+  breakage. The kind of thing that requires action this week.*
+- *HIGH — real architectural flaw, gap likely to bite, missing
+  thing that should exist. Action needed this batch.*
+- *MEDIUM — smell or rough edge worth cleaning up. Doesn't bite
+  today, but it will.*
+- *LOW — nit, cosmetic, future polish. Worth noting, not worth
+  prioritizing.*
+
+*Drop tiers with no findings — don't render an empty CRITICAL
+section to say "no critical issues". If there are zero findings
+across all tiers, render a §26 Empty state instead of an empty
+Findings section.)*
 
 ### Tradeoffs worth naming
 
@@ -125,25 +166,32 @@ that too — and say why.>
 
 *(Optional)* **Adjacent observations.** <one or two lines on stuff
 just outside the audit scope that the reader should know about.>
-```
+````
 
 ## Style rules
 
-- **Visual rhythm matters.** Use the horizontal rules (`---`) between
-  Part 1, Part 2, and Bottom line. They make the report scannable.
-- **Emoji are load-bearing here, not decoration.** 🔍 marks the
-  report, ✅/⚠️/🚧 mark the assessment buckets. Don't sprinkle
-  others.
-- **Bold the claim, then dash, then the reason.** It reads like a
-  bullet list of headlines. `- **Claim** — reason.`
-- **No tables in Part 2.** Lists scan faster for opinions; tables
-  imply false uniformity.
+- **Render structured deliverables per `output-rules.md`.** The
+  Findings section is §6 Severity audit; the rest is markdown
+  prose with code snippets. Glyph and color discipline follow
+  the canonical set in `output-rules.md`.
+- **Visual rhythm matters.** Use the horizontal rules (`---`)
+  between Part 1, Part 2, and Bottom line. They make the report
+  scannable.
+- **Severity is a calibration tool, not a sorting trick.** Don't
+  inflate everything to HIGH because the audit "found problems."
+  Don't bury real issues at LOW because the codebase is mostly
+  fine. Each tier means something specific — see the calibration
+  in the template.
+- **Bold the claim, then dash, then the reason.** Applies to the
+  "What's working" bullets and the inside of finding rows.
+  `- **Claim** — reason.`
 - **Code snippets ≤ 15 lines.** If you need more, link with
   `file_path:line_start-line_end` and summarize in prose.
-- **Cite files as `path:line`.** Renders as a click-through link in
-  the chat.
-- **No trailing "hope this helps".** End on the Bottom line (or the
-  Adjacent observations footer).
+- **Cite files as `path:line`.** Renders as a click-through link
+  in the chat. Inside §6 finding rows, the file path goes after
+  the `·` separator.
+- **No trailing "hope this helps".** End on the Bottom line (or
+  the Adjacent observations footer).
 
 ## What "honest" looks like in Part 2
 

@@ -232,15 +232,26 @@ of a successful run.>
 rendered artifact (report, doc, plan). Otherwise delete the
 section. -->
 
+**Catalogue entry.** <TODO: pin the catalogue §-number(s) this skill
+renders, per the selection table in `.claude/output-rules.md`. E.g.
+"§5 Deployment report" for a release skill, "§6 Severity audit" for
+an audit skill. Compose multiple entries when the output spans
+sections — e.g. `/status` pins §2 Live dashboard + §17 Branch
+overview + §28 Stats card grid.>
+
 ```markdown
-<TODO: literal markdown the skill should output. Use placeholder
-brackets like <thing> for substitutions. Match the visual
-rhythm of /audit, /onboard, /wrangle — horizontal rules between
-major sections, emoji as load-bearing markers (not decoration).>
+<TODO: literal markdown the skill should output, embedding the
+catalogue template(s) above. Code-fence the box-drawing art so it
+renders in monospace. Use placeholder brackets like <thing> for
+substitutions. Don't invent a new visual rhythm — the catalogue is
+the kit's design language for structured deliverables.>
 ```
 
 ## Style rules
 
+- **Render structured deliverables per `output-rules.md`.** Use the
+  pinned catalogue §-entries above; follow the glyph and color
+  discipline; don't invent visual patterns inline.
 - **<TODO: style rule specific to this skill's output>** —
   <TODO: rationale>
 - **Cite files as `path:line`.** Click-through links in chat.

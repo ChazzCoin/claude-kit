@@ -14,6 +14,77 @@ human-readable rollback).
 
 ---
 
+## Unreleased — structured outputs foundation
+
+Wires a shared design language for structured deliverables. The kit
+ships a catalogue of 34 visual templates (hero cards, dashboards,
+roadmaps, deployment reports, severity audits, kanban boards, etc.)
+plus selection rules that map kit scenarios to specific entries.
+Skills will reference catalogue §-numbers in their output structure.
+
+### Added
+
+- **`kit/output-styles.md`** — the catalogue itself. 34 structured-
+  output templates with consistent glyph vocabulary
+  (`● ◐ ○ ✓ ✗ ▲ ▼ ═ ▌ ★ ▶`) and semantic color palette. Designed
+  for monospace + ANSI color, with a "two encodings beat one"
+  principle so output stays readable when color is stripped.
+- **`kit/output-rules.md`** — the selection / composition / discipline
+  layer. Defines what counts as a "structured output" (status,
+  deploy, audit, backlog, etc.) vs. conversational reply; maps each
+  kit scenario to a catalogue §; sets composition rules for multi-
+  template reports; pins glyph and color semantics; states rendering
+  constraints (monospace + code fences); documents fallback when no
+  entry fits.
+
+### Changed
+
+- **`kit/task-rules.md`** — added an "Output styles" reference at the
+  top, parallel to the existing "Platform extensions" note.
+- **`kit/skills/new-skill/SKILL.md`** — skeleton's output structure
+  guidance now requires future skills to pin a catalogue §-entry
+  from the selection table, replacing the prior "match the visual
+  rhythm of /audit, /onboard, /wrangle" instruction.
+- **`MANIFEST.json`** — registers `output-rules.md` and
+  `output-styles.md` for sync. `bin/init`'s `kit/*.md` glob (added
+  in v0.5.0) picks them up automatically — no init script edit
+  needed.
+
+### Wired skills (proof-of-concept)
+
+Three high-leverage skills now render via the catalogue. Remaining
+~30 skills follow in a separate PR.
+
+- **`/status`** — pins §2 Live status dashboard (project state row)
+  + §23 Activity timeline (AUDIT log). Markdown tables retained for
+  commits and PRs (legitimate tabular data). §25 Alert variants for
+  the "anything off" section. Section emoji (🚀 🌿 📦 🔀 🛠 🗺 📜
+  ⚠️) dropped from headings — the catalogue's typographic glyphs
+  (● ◐ ○ ◆) carry the visual weight inside catalogue blocks.
+- **`/release`** — pins §5 Deployment report for the closing
+  artifact, §2 Live dashboard for the pre-flight check, §25 Alert
+  variants for failure conditions at any step. The prior closing-
+  report markdown table replaced by the catalogue's two-column
+  key/value rows below the deployment box.
+- **`/audit`** — pins §6 Severity audit for the Findings section.
+  Structural change worth flagging: the prior 3 buckets
+  (✅ working / ⚠️ shaky / 🚧 gaps) collapse into 2 sections —
+  "What's working" (praise, plain bullets) and "Findings" (§6
+  severity tiers: CRITICAL / HIGH / MEDIUM / LOW). Severity
+  calibrates honesty better than category.
+
+### Notes
+
+- **Aesthetic shift.** The catalogue is a different design language
+  than the kit's prior emoji-markdown rhythm (🚀 🔍 ✅ ⚠️ section
+  headers, plain bullets). Output from the three wired skills now
+  looks distinctly different — denser, more terminal-app in feel.
+  Once the rest are wired, this becomes the kit's house style.
+- **Backwards compatible during rollout.** The 30+ skills not yet
+  wired continue rendering in the prior style — no broken output.
+
+---
+
 ## v0.5.0 — 2026-05-01
 
 Bundles four post-v0.4.0 merges that shipped without a version bump

@@ -29,6 +29,17 @@ starting work.
 > a gate — every project pulls all files; each work session reads the
 > ones that apply.
 
+> **Output styles.** Structured outputs — status reports, deployment
+> reports, audits, backlogs, test results, decisions, and similar
+> deliverables — render via the kit's output catalogue. The
+> catalogue itself is at `.claude/output-styles.md`; the selection
+> and composition rules (which template applies to which situation,
+> when to compose, glyph and color discipline) are at
+> `.claude/output-rules.md`. Read both when producing a structured
+> output. Plain conversation, narration, Q&A, and brainstorming stay
+> as normal markdown — `output-rules.md` defines what counts as
+> "structured" vs. "conversational."
+
 ## Vocabulary
 
 Operational terms used across this doc, the skills, and chat. When
