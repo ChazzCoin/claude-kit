@@ -36,6 +36,11 @@ file. Delete a line if the file isn't used in this project.
 If your project uses `/inbox`, add `@.claude/inbox/<your-handle>.md`
 to load your messages on session start.
 
+**Project terminology overrides.** Define any project-specific
+meanings of kit terms (versioning, lifecycle states, verification
+gate, etc.) in `.claude/vocabulary-overrides.md`. Defaults are in
+`.claude/vocabulary.md`.
+
 ## What this is
 
 {{ONE-PARAGRAPH PROJECT DESCRIPTION — what does this project do, who

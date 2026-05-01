@@ -42,7 +42,8 @@ Walk these. Skip any that don't exist in the repo.
 - `CLAUDE.md` — working contract for Claude sessions
 - `DEPLOY.md` — release / hosting / rollback
 - `.env.example` — env-var contract
-- `package.json` scripts — implicit doc of how to run things
+- The project's package manifest (e.g. `package.json`, `Package.swift`,
+  `pyproject.toml`, `build.gradle`) — implicit doc of how to run things
 - Any `docs/` directory
 
 **Task system (`.claude/` + `tasks/`):**
@@ -72,14 +73,16 @@ docs" header so the user sees the surface area.
 
 For each doc, compare claims to reality:
 
-- **CLAUDE.md** — does the tech stack match `package.json`? Do
-  the listed model files exist? Are the documented RTDB paths the
-  same as `src/firebase/paths.js`? Are the folder-layout sections
-  current?
+- **CLAUDE.md** — does the tech stack match the project's manifest
+  (the file documented in CLAUDE.md as the project's package /
+  module / dependency declaration)? Do the listed model files
+  exist? Are the documented data paths still in use? Are the
+  folder-layout sections current?
 - **README.md** — do the install / run / test steps actually work?
   Does the feature list match what the app does today?
-- **DEPLOY.md** — do the deploy commands match `package.json`
-  scripts? Is the live URL still right?
+- **DEPLOY.md** — do the deploy commands match what the project's
+  manifest / build config actually defines? Is the live URL still
+  right?
 - **.env.example** — does it list every `VITE_*` / `PW_*` var the
   code reads? (Grep the codebase for `import.meta.env.` and
   `process.env.` to find them.)
