@@ -176,10 +176,16 @@ cd /path/to/your/new/project
 The init script:
 
 1. Creates `.claude/skills/`, `.claude/task-rules.md`, `.claude/task-template.md` from `kit/`
-2. Drops bootstrap templates (CLAUDE.md, PHASES.md, ROADMAP.md, AUDIT.md) into the project — **only if they don't already exist**
-3. Creates `tasks/{backlog,active,done}/` with `.gitkeep` files
-4. Writes `.claude/foundation.json` with the kit's commit SHA so `/sync` knows what to compare against
-5. Prints next steps (mostly: fill in the placeholders in CLAUDE.md)
+2. Drops project-content bootstrap templates into the project root — **only if they don't already exist**:
+   - `CLAUDE.md`, `tasks/PHASES.md`, `tasks/ROADMAP.md`, `tasks/AUDIT.md`
+3. Drops the primitive layer into `.claude/` — **only if they don't already exist**:
+   - `.claude/pact.md`, `.claude/welcome.md`, `.claude/wont-do.md`, `.claude/playlists.md`, `.claude/bookmarks.md`
+4. Scaffolds output destinations the kit's skills write to:
+   - `tasks/{backlog,active,done}/`
+   - `docs/{decisions,postmortems,notes,audits,handoff,regrets,retros,blast-radius,scope,exports,proto,mvp}/`
+   - `.claude/{tradeoffs,inbox}/`
+5. Writes `.claude/foundation.json` with the kit's commit SHA so `/sync` knows what to compare against
+6. Prints next steps (mostly: fill in the placeholders in CLAUDE.md and declare the project's `## Platform`)
 
 ### Existing project
 
@@ -214,10 +220,12 @@ prior kit knowledge required.
 | `.claude/task-template.md` | **OVERWRITE** with kit version | Same — back it up first if project-customized. |
 | `.claude/<platform>-*.md` (e.g. `ios-task-rules.md`) | added | New file — won't collide unless you happen to already have one with a matching name. |
 | `.claude/foundation.json` | created if missing | Skipped if exists — your existing pin stays. |
+| `.claude/pact.md`, `welcome.md`, `wont-do.md`, `playlists.md`, `bookmarks.md` | `skip-if-exists` | Primitive-layer files. Existing versions stay; user owns them after init. |
 | `tasks/{backlog,active,done}/` | scaffolded if missing/empty | Existing task files preserved. |
 | `tasks/PHASES.md`, `tasks/ROADMAP.md`, `tasks/AUDIT.md` | `skip-if-exists` | Existing project-specific versions stay. |
 | `CLAUDE.md` | `skip-if-exists` | Existing CLAUDE.md stays. **You'll edit it after init** to add the new `## Platform` section and migrate any project-specific content from the old task-rules.md. |
-| `docs/decisions/`, `docs/postmortems/` | scaffolded if missing | Empty `.gitkeep` only. |
+| `docs/{decisions,postmortems,notes,audits,handoff,regrets,retros,blast-radius,scope,exports,proto,mvp}/` | scaffolded if missing | Empty `.gitkeep` only. Skill output destinations. |
+| `.claude/{tradeoffs,inbox}/` | scaffolded if missing | Empty `.gitkeep` only. `/brainstorm` and `/inbox` write here. |
 
 ### Save your work BEFORE running init
 

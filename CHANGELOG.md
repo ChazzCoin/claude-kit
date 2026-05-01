@@ -127,6 +127,31 @@ writes to: `docs/notes/`, `docs/audits/`, `docs/handoff/`,
   added for the 5 primitive templates; scaffold list expanded for
   the new docs/ subdirs and `.claude/{tradeoffs,inbox}/`.
 
+- **`bin/init`** — three classes of drift fixed:
+  - **Kit `.md` files now iterated** (`for f in kit/*.md`) instead
+    of hardcoded. Picks up `task-rules.md`, `task-template.md`,
+    `ios-task-rules.md`, `web-task-rules.md`, `ios-conventions.md`,
+    and any future `<platform>-*.md` the kit ships. Fixes a
+    v0.2.0-era bug where the platform extension files were
+    declared in MANIFEST but never installed by init.
+  - **Primitive templates copied** (`pact.md`, `welcome.md`,
+    `wont-do.md`, `playlists.md`, `bookmarks.md`). Fixes a v0.5.0
+    gap where the primitive layer was added to MANIFEST in commit
+    `507d057` but the init script wasn't updated.
+  - **Scaffold dirs extended** to all 17 declared in MANIFEST
+    (was 5). Adds the 10 skill-output dirs from v0.5.0
+    (`docs/notes/`, `docs/audits/`, `docs/handoff/`, `docs/regrets/`,
+    `docs/retros/`, `docs/blast-radius/`, `docs/scope/`,
+    `docs/exports/`, `.claude/tradeoffs/`, `.claude/inbox/`) plus
+    the 2 from v0.4.0 (`docs/proto/`, `docs/mvp/`).
+
+  Existing projects were unaffected by the prior gaps — kit-managed
+  files already existed or are user-owned via `skip-if-exists`. The
+  script remains intentionally simple: pure `cp + mkdir`, no
+  `MANIFEST.json` parsing, no network. Bootstrap templates and
+  scaffold dirs are still hardcoded (additions require a script
+  edit); only the kit `.md` files self-maintain via the glob loop.
+
 ### Did not change
 
 - `kit/task-rules.md`, `kit/ios-task-rules.md`, `kit/web-task-rules.md`,
@@ -135,24 +160,6 @@ writes to: `docs/notes/`, `docs/audits/`, `docs/handoff/`,
   primitives section. `PHASES.md`, `ROADMAP.md`, `AUDIT.md`,
   `foundation.json` templates are unchanged.
 
-### Known gap
-
-- **`bin/init` is out of sync with `MANIFEST.json`.** New skills
-  flow through the `kit/skills/` directory-mirror correctly, but
-  `bin/init` has a hardcoded list for bootstrap templates (only the
-  original 4: `CLAUDE.md`, `PHASES.md`, `ROADMAP.md`, `AUDIT.md`)
-  and scaffold dirs (only `tasks/{backlog,active,done}` +
-  `docs/{decisions,postmortems}`). Fresh projects today **do not
-  receive the 5 primitive templates** (`pact.md`, `welcome.md`,
-  `wont-do.md`, `playlists.md`, `bookmarks.md`) or the 11 new
-  scaffold dirs (`docs/notes/`, `docs/audits/`, `docs/handoff/`,
-  `docs/regrets/`, `docs/retros/`, `docs/blast-radius/`,
-  `docs/scope/`, `docs/exports/`, `docs/proto/`, `docs/mvp/`,
-  `.claude/tradeoffs/`, `.claude/inbox/`). Existing projects on
-  `/sync` are unaffected (sync respects `skip-if-exists`). Fix
-  tracked as a follow-up: teach `bin/init` to read
-  `MANIFEST.json`, or extend its hardcoded lists.
-
 ### Counts
 
 | | v0.4.0 | v0.5.0 |
@@ -160,7 +167,8 @@ writes to: `docs/notes/`, `docs/audits/`, `docs/handoff/`,
 | Universal skills | 21 | 36 |
 | Platform skills | 1 | 1 |
 | Bootstrap templates | 5 | 10 |
-| Scaffold dirs | 4 | 16 |
+| Scaffold dirs (declared in MANIFEST) | 7 | 17 |
+| Scaffold dirs (actually installed by `bin/init`) | 5 | 17 |
 
 ---
 
