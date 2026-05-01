@@ -14,13 +14,82 @@ human-readable rollback).
 
 ---
 
-## Unreleased — structured outputs foundation
+## Unreleased — structured outputs foundation + live HTML dashboard
 
-Wires a shared design language for structured deliverables. The kit
-ships a catalogue of 34 visual templates (hero cards, dashboards,
-roadmaps, deployment reports, severity audits, kanban boards, etc.)
-plus selection rules that map kit scenarios to specific entries.
-Skills will reference catalogue §-numbers in their output structure.
+Two related additions:
+
+1. **Structured outputs catalogue + rules** — a shared design
+   language for structured deliverables (status reports, deploy
+   reports, audits, etc.), with 3 high-leverage skills wired as
+   proof-of-concept.
+2. **Live HTML dashboard** — opt-in browser-rendered companion
+   that visualizes kit state in real time, consuming the same
+   catalogue vocabulary in CSS form.
+
+### Added — dashboard
+
+- **`kit/dashboard/`** — opt-in (NOT installed by `bin/init`, NOT
+  synced by default). Single-file Python server + single-file HTML
+  page. Zero runtime deps beyond Python 3.9+ stdlib.
+  - **`dashboard.py`** (~340 LOC) — server + state gatherer.
+    Subcommands: `start [--port]`, `stop`, `status`, `refresh`.
+    Reads project files (`tasks/AUDIT.md`, `ROADMAP.md`,
+    `.claude/inbox/`, etc.), git, and optionally `gh`. Recomputes
+    state on every `/state.json` request — no caching, no daemon.
+  - **`index.html`** (~700 LOC) — vanilla JS, inline CSS, no
+    build. Dark theme, catalogue-aligned design language. Polls
+    `/state.json` every 3s.
+  - **`README.md`** — opt-in install + architecture + lifecycle.
+  - **`.gitignore`** — runtime artifacts (`state.json`,
+    `.dashboard.pid`, `.dashboard.log`).
+- **`kit/skills/dashboard/SKILL.md`** — `/dashboard start | stop |
+  status | refresh | restart`. Detects whether the dashboard is
+  installed and surfaces the install step if not. §25 Alert
+  variants for status messages, §28 Stats grid for the running
+  report.
+
+### Dashboard panels
+
+A single "kit" view with 9 panels, each pinning a catalogue entry
+where applicable:
+
+| Panel | Source | Catalogue § |
+|---|---|---|
+| Production | `git describe --tags`, deploy frequency strip | §2 + §28 |
+| Git state | branch, dirty/clean, ahead/behind, worktrees | §2 + §17 |
+| Activity | `tasks/AUDIT.md` (or CHANGELOG fallback) | §23 |
+| Open PRs | `gh pr list` (graceful degrade) | tabular |
+| In flight | `tasks/active/*.md` | tabular |
+| Inbox | `.claude/inbox/*` | tabular |
+| Backlog | `tasks/ROADMAP.md` phases | §3 / §4 |
+| Recent commits | `git log -10 origin/main` | §16 |
+| Anything off | derived warnings (stale PR, dirty main) | §25 |
+
+### Dashboard design
+
+- Dark theme. Color palette mirrors `output-rules.md`: success
+  green / warning yellow / danger red / accent purple / info blue.
+- Glyph vocabulary identical to the catalogue: `● ◐ ○ ✓ ✗ ▲ ◆ ⚠`.
+- Production version rendered as a 96px gradient text with glow.
+- 30-day deploy frequency strip (one cell per day, green if a
+  deploy occurred).
+- Smooth transitions on data refresh; pulse indicator on "live."
+- Bound to `127.0.0.1` only — no LAN exposure.
+
+### Added — structured outputs (foundation)
+
+- **`kit/output-styles.md`** — the catalogue itself. 34 structured-
+  output templates with consistent glyph vocabulary
+  (`● ◐ ○ ✓ ✗ ▲ ▼`) and semantic color palette. Designed
+  for monospace + ANSI color, with a "two encodings beat one"
+  principle so output stays readable when color is stripped.
+- **`kit/output-rules.md`** — the selection / composition / discipline
+  layer. Defines what counts as a "structured output" (status,
+  deploy, audit, backlog, etc.) vs. conversational reply; maps each
+  kit scenario to a catalogue §; sets composition rules for multi-
+  template reports; pins glyph and color semantics; states rendering
+  constraints (monospace + code fences); documents fallback when no
+  entry fits.
 
 ### Added
 

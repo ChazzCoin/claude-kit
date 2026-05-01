@@ -1,0 +1,4 @@
+# Runtime artifacts — regenerated on every server start / refresh.
+state.json
+.dashboard.pid
+.dashboard.log
