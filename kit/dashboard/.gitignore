@@ -2,3 +2,7 @@
 state.json
 .dashboard.pid
 .dashboard.log
+
+# Python bytecode (when dashboard.py is imported during testing).
+__pycache__/
+*.pyc

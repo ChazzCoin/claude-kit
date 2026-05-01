@@ -78,6 +78,109 @@ def has_cmd(cmd: str) -> bool:
         return False
 
 
+# ---------- environment detection ------------------------------------------
+
+def detect_environment() -> dict[str, Any]:
+    """Decide where we're running. Drives the start-time UX:
+
+    - ``local`` — auto-open browser, just print URL
+    - ``ssh`` — print the SSH tunnel command to run on the user's
+      LOCAL machine (we know server IP + SSH port via $SSH_CONNECTION)
+    - ``codespaces`` / ``gitpod`` / ``devcontainer`` — these have
+      built-in port forwarding; tell the user to use it
+    - ``unknown`` — fall back to "URL is X, you figure it out"
+    """
+    ssh_conn = os.environ.get("SSH_CONNECTION", "").split()
+    if len(ssh_conn) >= 4:
+        try:
+            ssh_port = int(ssh_conn[3])
+        except ValueError:
+            ssh_port = 22
+        return {
+            "kind": "ssh",
+            "ssh": {
+                "host": ssh_conn[2],
+                "port": ssh_port,
+                "user": os.environ.get("USER") or os.environ.get("LOGNAME") or "user",
+                "hostname": sh(["hostname"], Path.cwd()) or ssh_conn[2],
+            },
+            "open_browser": False,
+        }
+    if os.environ.get("CODESPACES") == "true" or os.environ.get("CODESPACE_NAME"):
+        return {"kind": "codespaces", "open_browser": False}
+    if os.environ.get("GITPOD_WORKSPACE_ID"):
+        return {"kind": "gitpod", "open_browser": False}
+    if os.environ.get("REMOTE_CONTAINERS") or os.environ.get("CODER_WORKSPACE_NAME"):
+        return {"kind": "devcontainer", "open_browser": False}
+
+    # Local-ish: only auto-open if a display is present.
+    if sys.platform == "darwin":
+        return {"kind": "local", "open_browser": True}
+    if sys.platform.startswith("linux") and os.environ.get("DISPLAY"):
+        return {"kind": "local", "open_browser": True}
+    if sys.platform == "win32":
+        return {"kind": "local", "open_browser": True}
+    return {"kind": "local", "open_browser": False}
+
+
+def open_browser(url: str) -> bool:
+    """Best-effort browser launch. Returns True if launched."""
+    if sys.platform == "darwin":
+        opener = ["open", url]
+    elif sys.platform == "win32":
+        opener = ["cmd", "/c", "start", url]
+    else:
+        opener = ["xdg-open", url]
+    try:
+        subprocess.Popen(
+            opener,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        return True
+    except (OSError, FileNotFoundError):
+        return False
+
+
+def render_env_guidance(env: dict[str, Any], port: int) -> None:
+    """Print environment-specific guidance after the server header."""
+    kind = env["kind"]
+    if kind == "ssh":
+        s = env["ssh"]
+        port_flag = "" if s["port"] == 22 else f" -p {s['port']}"
+        print("  REMOTE (SSH) — run this on your LOCAL machine to view:")
+        print()
+        print(f"    ssh{port_flag} -L {port}:localhost:{port} {s['user']}@{s['host']}")
+        print()
+        print(f"  then open  http://localhost:{port}  in your local browser.")
+        print()
+        return
+    if kind == "codespaces":
+        print("  CODESPACES detected — open the 'Ports' panel in VS Code")
+        print(f"  to forward port {port} and click the resulting URL.")
+        print()
+        return
+    if kind == "gitpod":
+        print(f"  GITPOD detected — Gitpod auto-forwards port {port}.")
+        print("  Click the toast / 'Ports' panel in your editor.")
+        print()
+        return
+    if kind == "devcontainer":
+        print(f"  DEV CONTAINER detected — your editor should forward port {port}")
+        print("  automatically; check the 'Ports' panel.")
+        print()
+        return
+    # local
+    if env.get("open_browser"):
+        if open_browser(f"http://localhost:{port}"):
+            print(f"  opening http://localhost:{port} in your default browser…")
+            print()
+            return
+    print(f"  open  http://localhost:{port}  in your browser.")
+    print()
+
+
 # ---------- time helpers ----------------------------------------------------
 
 def parse_iso(s: str) -> dt.datetime | None:
@@ -422,7 +525,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 # ---------- commands --------------------------------------------------------
 
-def cmd_start(port: int) -> int:
+def cmd_start(port: int, no_open: bool = False) -> int:
     if PID_FILE.exists():
         try:
             pid = int(PID_FILE.read_text().strip())
@@ -434,15 +537,23 @@ def cmd_start(port: int) -> int:
 
     project_root = find_project_root()
     Handler.project_root = project_root
+    project_name = gather_project(project_root)["name"]
 
     print("claude-kit dashboard")
-    print(f"  project : {project_root.name}")
+    print(f"  project : {project_name}")
     print(f"  root    : {project_root}")
     print(f"  port    : {port}")
     print(f"  url     : http://localhost:{port}")
     print()
+
+    env = detect_environment()
+    if no_open:
+        env["open_browser"] = False
+    render_env_guidance(env, port)
+
     print("  Ctrl-C to stop.")
     print()
+    sys.stdout.flush()  # flush before serve_forever blocks — matters when stdout is piped to a log
 
     PID_FILE.write_text(str(os.getpid()))
     try:
@@ -504,13 +615,15 @@ def main() -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
     s_start = sub.add_parser("start", help="start the server")
     s_start.add_argument("--port", type=int, default=DEFAULT_PORT)
+    s_start.add_argument("--no-open", action="store_true",
+                         help="don't auto-open browser even when local")
     sub.add_parser("stop", help="stop a running server")
     sub.add_parser("status", help="show running status")
     sub.add_parser("refresh", help="rewrite state.json once, no server")
     args = p.parse_args()
 
     if args.cmd == "start":
-        return cmd_start(args.port)
+        return cmd_start(args.port, no_open=args.no_open)
     if args.cmd == "stop":
         return cmd_stop()
     if args.cmd == "status":

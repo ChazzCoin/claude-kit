@@ -72,18 +72,86 @@ The kit ships a `/dashboard` skill that wraps the lifecycle:
 ```sh
 # from the project root
 python3 .claude/dashboard/dashboard.py start
-# → opens http://localhost:7531
+# → auto-detects env: local opens the browser, SSH prints the tunnel command
 
 python3 .claude/dashboard/dashboard.py stop
 python3 .claude/dashboard/dashboard.py status
 python3 .claude/dashboard/dashboard.py refresh
 ```
 
-Custom port:
+Flags:
 
 ```sh
 python3 .claude/dashboard/dashboard.py start --port 8080
+python3 .claude/dashboard/dashboard.py start --no-open  # don't auto-open browser
 ```
+
+---
+
+## Environments — auto-detected
+
+`start` checks the environment and tailors its output. You don't
+configure anything; it just does the right thing.
+
+### Local (macOS, Linux with `$DISPLAY`, Windows)
+
+Auto-opens the URL in your default browser. Output:
+
+```
+claude-kit dashboard
+  project : claude-kit
+  port    : 7531
+  url     : http://localhost:7531
+
+  opening http://localhost:7531 in your default browser…
+
+  Ctrl-C to stop.
+```
+
+Override with `--no-open` if you want quiet startup.
+
+### SSH (any remote you SSH into)
+
+Detected via `$SSH_CONNECTION`. The script extracts the remote
+host IP, SSH port, and your username, and prints the exact tunnel
+command to copy-paste on your **local** machine:
+
+```
+claude-kit dashboard
+  project : my-project
+  port    : 7531
+  url     : http://localhost:7531
+
+  REMOTE (SSH) — run this on your LOCAL machine to view:
+
+    ssh -L 7531:localhost:7531 chazz@10.0.0.50
+
+  then open  http://localhost:7531  in your local browser.
+
+  Ctrl-C to stop.
+```
+
+If you SSH'd in on a non-default port (e.g. `-p 2222`), it's
+included automatically: `ssh -p 2222 -L ...`. The dashboard server
+still binds to `127.0.0.1` only — the SSH tunnel is the only way
+in. **No LAN exposure.**
+
+### Cloud editors
+
+| Env | Detection | Behavior |
+|---|---|---|
+| GitHub Codespaces | `$CODESPACES`, `$CODESPACE_NAME` | Tells you to use the VS Code "Ports" panel to forward 7531 |
+| Gitpod | `$GITPOD_WORKSPACE_ID` | Reminds you Gitpod auto-forwards; click the toast |
+| Dev container | `$REMOTE_CONTAINERS`, `$CODER_WORKSPACE_NAME` | Points at the editor's port-forwarding UI |
+
+These platforms have their own port-forwarding mechanisms; the
+dashboard just surfaces a hint pointing at them.
+
+### Unknown
+
+If none of the above match (e.g. an unusual remote shell),
+prints just the URL with a note that you'll need to arrange
+access yourself.
 
 ---
 

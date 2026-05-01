@@ -110,6 +110,12 @@ If not running: render an INFO alert suggesting `/dashboard start`.
 
 ### Step 4 — Operation: start
 
+The python script handles environment detection itself — local
+auto-opens the browser, SSH prints a ready-to-paste tunnel
+command, Codespaces / Gitpod / dev containers get platform-
+specific guidance. Your job is the lifecycle (pre-flight, run,
+verify, report) — not the env decision.
+
 Pre-flight:
 
 1. `python3 .claude/dashboard/dashboard.py status` — if already
@@ -126,11 +132,18 @@ nohup python3 .claude/dashboard/dashboard.py start --port <port> \
   > .claude/dashboard/.dashboard.log 2>&1 &
 ```
 
+The script's stdout (now in the log file) contains the env-aware
+guidance — read the first ~20 lines after starting; that's what
+the user needs to see. For SSH sessions, this includes the
+ready-to-paste `ssh -L ...` tunnel command. Quote it back to the
+user verbatim — don't reformat.
+
 Wait briefly (~1s), then verify the server is up by polling
 `http://localhost:PORT/state.json`. If it responds with HTTP 200,
 the server's alive.
 
-Render an `INFO` alert with the URL:
+Render a SUCCESS alert with the URL plus, if the log shows a
+remote env, the SSH tunnel line:
 
 ````markdown
 ```
@@ -138,9 +151,16 @@ Render an `INFO` alert with the URL:
 │  dashboard running                                          │
 │  →  http://localhost:7531                                   │
 │  PID 12345 · log .claude/dashboard/.dashboard.log           │
+│                                                             │
+│  REMOTE (SSH) detected — on your local machine:             │
+│    ssh -L 7531:localhost:7531 chazz@1.2.3.4                 │
+│  then open  http://localhost:7531                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 ````
+
+(The "REMOTE" block only renders if the script's output
+contained "REMOTE (SSH)" — local mode just shows URL + PID.)
 
 If the verify poll fails, render an ERROR alert with the tail of
 the log file (`.claude/dashboard/.dashboard.log`). Don't leave a
