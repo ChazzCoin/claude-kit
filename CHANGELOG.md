@@ -20,6 +20,225 @@ human-readable rollback).
 
 ---
 
+## v0.8.0 — 2026-05-01
+
+A self-discipline release. Five interlocking issues raised against
+v0.7.0, all addressed:
+
+1. **No self-audit** — nothing enforced the platform-prefix
+   convention. iOS rules were drifting into universal files. Now
+   there's a linter.
+2. **`task-rules.md` was a kitchen sink** — four concerns in one
+   ~700-line file. Split into focused, separately-loadable files.
+3. **No CHANGELOG delta on sync** — projects upgrading kit versions
+   had to `git log --oneline` to see what changed. `/sync` now
+   surfaces the delta as a §23 timeline.
+4. **No kit-vs-project overlap detection** — when the kit ships
+   content that overlaps with project-elaborated files, /sync now
+   flags it and offers four reconcile paths.
+5. **Hardcoded vocabulary** — `patch / minor / major` semver
+   semantics, "batch", "tag and bag", etc. were universal across
+   the kit. iOS build-number constraints distort them in practice.
+   Now there's a configurable vocabulary layer with project
+   overrides.
+
+### Added
+
+#### Kit linter (`bin/lint` + `/lint-kit` skill)
+
+- **`bin/lint`** (~490 LOC, pure bash + awk, no Python). Greps
+  every universal kit file (any `kit/*.md` without a platform
+  prefix, plus `kit/skills/<name>/SKILL.md` where `<name>` lacks
+  a platform prefix, plus `bootstrap/*.template`) for
+  platform-specific keywords:
+  - **iOS:** `xcodebuild`, `xcrun`, `altool`, `fastlane`, `AVKit`,
+    `SwiftUI`, `UIKit`, `SwiftData`, `Combine`, `.xcodeproj`,
+    `.xcworkspace`, `Package.swift`, `Podfile`, `Realm`,
+    `Kingfisher`, `Cocoapods`, `TestFlight`
+  - **Android:** `gradle`, `build.gradle`, `Jetpack Compose`,
+    `Kotlin`, `Room`, `Hilt`, `Coroutines`, `CameraX`, `Coil`,
+    `AndroidX`
+  - **Web:** `package.json`, `npm`, `yarn`, `pnpm`, `react`,
+    `vue`, `next`, `svelte`, `nuxt`, `vite`, `webpack`, `tailwind`
+  - **Python:** `pyproject.toml`, `requirements.txt`, `pip`,
+    `poetry`, `flask`, `fastapi`, `django`, `pandas`, `numpy`,
+    `pytest`
+  - **Go / Ruby:** `go.mod`, `go.sum`, `gin`, `Gemfile`, `rails`,
+    etc.
+
+  Output is rendered in §6 Severity audit format (per
+  `kit/output-styles.md`). Severity tiering:
+  - **HIGH** — keyword in a non-cross-platform context (e.g.
+    `xcodebuild test` as a literal command).
+  - **MEDIUM** — likely platform-specific reference but ambiguous.
+  - **LOW** — keyword appears alongside cross-platform peers
+    (e.g. a list mentioning iOS, Android, web). Suppressed by
+    default; `VERBOSE=1` to show.
+
+  Exit code: non-zero on any HIGH findings (CI-friendly).
+
+- **`kit/skills/lint-kit/SKILL.md`** — wraps `bin/lint`. `/lint-kit`
+  bare runs the lint and renders output. `/lint-kit fix` walks
+  HIGH findings and offers per-finding moves to the right
+  platform file (with consent).
+
+  Pins §6 Severity audit as the catalogue entry.
+
+- **First-run drift fixed:** four HIGH findings caught in the
+  initial run, all fixed:
+  - `kit/task-template.md` — replaced `npm run build clean` with
+    "the project's build command (per CLAUDE.md / `/build`)".
+  - `kit/skills/update-docs/SKILL.md` — three `package.json`
+    references generalized to "the project's package manifest"
+    with examples across platforms.
+  - `kit/skills/task/SKILL.md` — AVPlayer/AVKit example in the
+    external-recon section rephrased to be platform-neutral
+    (per-platform examples now live in `<platform>-task-rules.md`).
+
+  Three MEDIUM findings retained as intentional cross-platform
+  references (`Realm` in `/schema-check`'s "iOS / Android Realm
+  or Core Data models" line; `vite.config.ts` and `package.json`
+  in templates and skill copy that legitimately cite the project's
+  manifest).
+
+#### Vocabulary layer
+
+- **`kit/vocabulary.md`** (~270 lines) — canonical kit term
+  definitions. Sections:
+  - **Versioning** — `Patch` / `Minor` / `Major` with iOS
+    `CFBundleVersion` monotonic constraint surfaced as a known
+    override case.
+  - **Tasks** — `Batch` / `Tag and bag` (extracted canonically
+    from `task-rules.md`).
+  - **Lifecycle states** — `Backlog` / `Active` / `Done`.
+  - **Stub vs. spec** — task spec maturity levels.
+  - **Phase** — first-class organizational unit.
+  - **Verification gate** — the headless test contract.
+  - **Gated file** — files needing explicit modification consent.
+  - **Hotfix** — emergency patch path.
+  - **Closing report** — mandatory PR-opens completion artifact.
+
+  Each section ends with an "Override in
+  `.claude/vocabulary-overrides.md`" pointer.
+
+- **`bootstrap/vocabulary.md.template`** (~120 lines) — project
+  override seed. Bootstrap-only, `skip-if-exists`. Lands at
+  `.claude/vocabulary-overrides.md` (different filename to avoid
+  collision with the kit-managed defaults file). Includes the iOS
+  build-number worked example.
+
+- **`kit/task-rules.md`** — old inline `## Vocabulary` section
+  removed; replaced with a top-of-file pointer block (parallel to
+  "Platform extensions" and "Output styles") pointing at the new
+  vocabulary files.
+
+- **`bootstrap/CLAUDE.md.template`** — one-line reference to
+  `.claude/vocabulary-overrides.md` added near the auto-loaded
+  primitives block.
+
+#### `/sync` — CHANGELOG delta + overlap reconcile
+
+- **Capability A — CHANGELOG delta surfacing.** When the project's
+  pinned SHA differs from kit HEAD, /sync now parses
+  `CHANGELOG.md` and renders a §23 Activity timeline of every
+  release between the pin and HEAD. Headline + version + date
+  per entry. Reserved-version markers (e.g. parked v0.6.0)
+  rendered with a special glyph.
+
+  When a release between pin and HEAD has structural / breaking
+  signals (e.g. v0.7.0's `/audit` 3-bucket → 2-section change),
+  emits a §25 WARNING alert above the timeline pointing at the
+  CHANGELOG section.
+
+- **Capability B — Overlap detection + reconcile.** Two
+  heuristics fire before installing kit files:
+  - **Filename topic match** — project `.claude/<name>.md`
+    shares a 5+ char substring (excluding stop-words) with a
+    kit file's basename.
+  - **Bold-claim phrase overlap** — kit file's `**...**`
+    phrases overlap >30% (and ≥3 phrases) with an existing
+    project file.
+
+  For every flagged pair, /sync renders a §25 INFO alert + four
+  reconcile options:
+  1. **Keep project version** — record as override; kit version
+     installed at `.claude/.kit-shadow/<name>` for comparison.
+  2. **Replace project version with kit** — backup to
+     `.claude/_archive/<name>.<YYYY-MM-DD>` first.
+  3. **Merge** — render diff, defer for manual reconciliation.
+  4. **Delete project version** — backup first.
+
+  Backup discipline is non-negotiable: any deletion or
+  replacement first writes the original to `.claude/_archive/`.
+  Per Rule 4 (protect main like prod) and Rule 2 (no
+  unauthorized destructive ops).
+
+  Schema addition documented in /sync's SKILL.md: optional
+  `shadows` array in `foundation.json` for tracking kit-version
+  comparisons under Option 1 overrides. Lazily written; the
+  bootstrap template stays minimal.
+
+### Changed
+
+#### Split `kit/task-rules.md` into focused files
+
+The kitchen sink is gone. `task-rules.md` (was ~800 lines) keeps
+the always-applicable execution core (Scope, Schema, Gated files,
+Branch + PR rules, Verification gates, Honest reporting, State
+machine, Closing report, Audit log, Phase structure, Adding
+tasks, Postmortem, Final review). Three new files split out:
+
+- **`kit/git-flow-rules.md`** (~115 lines) — the five git flow
+  rules added in v0.7.0. Read before any task touching branches,
+  merges, or deploys.
+- **`kit/release-rules.md`** (~190 lines) — production deploy
+  tagging format, version-bump heuristic, hotfix path,
+  dependency hygiene. Read when shipping or auditing deps.
+- **`kit/batch-handoff.md`** (~75 lines) — the multi-task
+  integration flow, post-handoff standby state, and the
+  merge-to-main confirmation gate. Read when wrapping a phase /
+  batch.
+
+`task-rules.md` retains a top-of-file pointer block for each
+(parallel to existing "Platform extensions" / "Output styles"
+notes). Readers load only what's relevant to the work at hand.
+
+The split is move-and-rename — no content rewriting. Diffable
+section-by-section.
+
+#### `MANIFEST.json` — version bump + new sync entries
+
+- Version `0.7.0` → `0.8.0`.
+- Four new kit-file sync entries: `git-flow-rules.md`,
+  `release-rules.md`, `batch-handoff.md`, `vocabulary.md`.
+- One new bootstrap entry: `vocabulary.md.template` →
+  `.claude/vocabulary-overrides.md` (skip-if-exists).
+- `bin/init`'s `kit/*.md` glob (added in v0.5.0) picks up the
+  three new top-level kit files automatically — no init script
+  edit needed.
+
+### Notes
+
+- **The vocabulary layer is opt-in for projects to use.** Existing
+  projects that sync to v0.8.0 get the new files installed, but
+  nothing breaks if they don't fill in `.claude/vocabulary-overrides.md`.
+  Skills fall back to kit defaults silently.
+- **The split is non-breaking but visible.** Every project that
+  syncs to v0.8.0 will see three new files appear in `.claude/`.
+  Existing references to "task-rules.md" sections that moved (git
+  flow, release, batch handoff) need to be re-pointed to the new
+  files. The `/sync` CHANGELOG delta surfaces this on upgrade.
+- **The linter is information, not a gate (yet).** `bin/lint`
+  exits non-zero on HIGH findings, which makes it CI-suitable, but
+  no CI is wired up. Run manually for now.
+- **Three MEDIUM lint findings remain** as intentional
+  cross-platform references (Realm in /schema-check, vite.config
+  in bookmarks template, package.json in /run skill). Not drift
+  — documentation features. Documented in the lint output for
+  future triage.
+
+---
+
 ## v0.7.0 — 2026-05-01
 
 A foundational release. Five interlocking pieces:

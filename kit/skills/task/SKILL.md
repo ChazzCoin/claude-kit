@@ -162,9 +162,11 @@ memory is stale.
 
 Use the `WebFetch` tool. **Targeted, not exhaustive** — fetch
 the pages for the specific symbols / topics this task will
-touch, not the whole framework. If the task is about playing
-HLS video on iOS, fetch the AVKit/AVPlayerViewController and
-AVPlayer pages. Don't fetch the entire AVFoundation tree.
+touch, not the whole framework. Example: if the task is about
+playing video, fetch the platform's specific player class +
+its essential modifiers. Don't fetch the entire media-framework
+tree. (Per-platform examples live in the relevant
+`<platform>-task-rules.md`.)
 
 **Look for** in each fetched page:
 - Current API surface (signatures, modifiers, params)

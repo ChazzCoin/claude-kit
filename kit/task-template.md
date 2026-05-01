@@ -80,5 +80,5 @@ Steps the human reviewer will run locally:
 **Definition of done:**
 - All acceptance criteria checked
 - E2E test passes (or N/A documented)
-- `npm run build` clean
+- The project's build command clean (per `CLAUDE.md` / `/build`)
 - PR opened, linked from this file, ready for human review
