@@ -29,6 +29,21 @@ guess.
 - **Auto-assign IDs.** Next available `TASK-NNN` (zero-padded
   three digits, with letter suffix for subdivisions like
   `018a`). Skip numbers already used.
+- **Reconnaissance before spec.** When expanding a stub to a
+  full spec (Operation 3), do **real reconnaissance** — read
+  the repo (internal), and fetch the current official docs for
+  the frameworks involved (external). Render a recon report
+  before drafting. The spec is the **contract between the task
+  builder (planner) and the task developer (implementer)** —
+  thorough recon upfront pays back many times during
+  implementation.
+- **Don't draft from memory.** LLM training cutoffs lag the
+  actual state of frameworks, APIs, and platform conventions.
+  For any framework-specific work, **WebFetch the current
+  official documentation** before drafting. The agent that's
+  going to implement this task will have the same stale-
+  knowledge problem; the spec's job is to feed it accurate,
+  current context.
 
 ## Common operations
 
@@ -64,17 +79,247 @@ guess.
 
 ### Operation 3 — Expand a stub to a full spec
 
-1. **Read the stub.**
-2. **Ask the questions** the full spec needs answered:
-   - User story (who, what, why)?
-   - In-scope / out-of-scope explicitly?
-   - Files expected to change?
-   - Acceptance criteria?
-   - Test plan / E2E shape?
-   - Open questions / risks?
-3. **Draft using the `task-template.md` shape.**
-4. **Don't commit yet** — show the user the rendered spec and
-   ask for sign-off.
+A spec is the contract between the **task builder** (the
+planner doing this step) and the **task developer** (the agent
+or human who'll implement). The developer's job gets
+dramatically easier when the spec is thorough — they shouldn't
+have to re-derive things the builder already figured out.
+
+This operation takes its time. Code reading, external doc
+research, requirements drilling — the up-front cost pays back
+several times over during implementation.
+
+#### Step 3.1 — Read the stub
+
+Quote the title + user story back. Confirm you're working on
+the intended task.
+
+#### Step 3.2 — Internal reconnaissance (read the repo)
+
+Read these in parallel where possible:
+
+- **`CLAUDE.md`** — project facts, platform, gated files,
+  verification commands, any project-specific rules.
+- **The stub itself** — every line, not just the title.
+- **Files referenced in the stub** — if the stub mentions
+  patterns or modules, read them.
+- **Existing patterns matching this task's domain.** Use
+  `grep` / `glob`. If the task is "add work order CRUD to the
+  iOS app," find the existing CRUD slices (parts, inspections)
+  and read them. If the task is "add a webhook endpoint,"
+  find existing endpoints. The new code should match how the
+  repo already does this kind of thing.
+- **Likely-touched files.** Derive from the topic + repo
+  structure. Don't skip relevant ones.
+
+Goal: when you draft the spec, every file in "Files expected
+to change" is grounded in code you actually read.
+
+#### Step 3.3 — External reconnaissance (read current docs)
+
+LLM training cutoffs lag the real state of frameworks and APIs.
+**Before spec'ing anything that touches a framework, fetch
+current official documentation** for the patterns the task
+will use. Don't draft framework code from memory — your
+memory is stale.
+
+**Detect the stack first:**
+
+- Platform — `CLAUDE.md` `## Platform` declaration is
+  authoritative.
+- Frameworks — repo manifests:
+  - **iOS / macOS** — `*.xcodeproj`, `Package.swift`,
+    `Podfile`. Frameworks: SwiftUI, UIKit, AVKit, AVFoundation,
+    SwiftData, Core Data, Combine, etc.
+  - **Android** — `build.gradle*`, `libs.versions.toml`.
+    Frameworks: Jetpack Compose, Room, CameraX, Hilt,
+    Coroutines, etc.
+  - **Web** — `package.json` deps. Frameworks: React, Vue,
+    Next.js, Svelte, etc.
+  - **Python** — `pyproject.toml` / `requirements.txt`.
+    Frameworks: Flask, FastAPI, Django, SQLAlchemy, Pydantic,
+    etc.
+  - **Go** — `go.mod`. Frameworks: gin, echo, fiber, gorm,
+    sqlc, etc.
+- The task's domain — UI? API endpoint? data layer? auth?
+  concurrency? Each constrains what to fetch.
+
+**Fetch the docs that matter for THIS task. Examples:**
+
+- **Apple** — `https://developer.apple.com/documentation/<framework>/<symbol>`
+  e.g. `developer.apple.com/documentation/avkit/avplayerviewcontroller`,
+  `developer.apple.com/documentation/swiftui/list`.
+- **Android** — `https://developer.android.com/jetpack/compose/<topic>`
+  or `https://developer.android.com/reference/<package>/<class>`.
+- **React** — `https://react.dev/reference/...` /
+  `https://react.dev/learn/<topic>`.
+- **Vue** — `https://vuejs.org/guide/<topic>` /
+  `https://vuejs.org/api/<symbol>`.
+- **Next.js** — `https://nextjs.org/docs/<area>/<topic>`.
+- **Flask** — `https://flask.palletsprojects.com/en/stable/<topic>/`.
+- **FastAPI** — `https://fastapi.tiangolo.com/<topic>/`.
+- **Django** — `https://docs.djangoproject.com/en/stable/<topic>/`.
+
+Use the `WebFetch` tool. **Targeted, not exhaustive** — fetch
+the pages for the specific symbols / topics this task will
+touch, not the whole framework. If the task is about playing
+HLS video on iOS, fetch the AVKit/AVPlayerViewController and
+AVPlayer pages. Don't fetch the entire AVFoundation tree.
+
+**Look for** in each fetched page:
+- Current API surface (signatures, modifiers, params)
+- Best-practice patterns the docs explicitly recommend
+- Deprecated APIs to avoid
+- Gotchas / requirements (entitlements, capabilities, version
+  constraints)
+- Code examples that show the canonical usage
+
+#### Step 3.4 — Synthesize a recon report
+
+Before drafting the spec, render a tight summary. The user
+sees this before any spec is drafted, so they can correct your
+read of the territory:
+
+```markdown
+## Reconnaissance — TASK-NNN
+
+### What exists in this repo
+- <pattern 1, file:line — one-line description>
+- <pattern 2, file:line — one-line description>
+
+### Integration points
+- <where this hooks in, with file:line>
+- <data flowing in/out, with file:line>
+
+### Current docs say (external)
+- **<framework> · <symbol>** — <key fact>. Source:
+  <full URL>
+- **<framework> · <pattern>** — <recommended approach>.
+  Source: <URL>
+- **Gotcha** — <thing the docs warn about>. Source: <URL>
+
+### Open questions for the user
+- <thing the docs don't decide>
+- <thing the existing code doesn't decide>
+- <constraint the task may violate that needs ruling>
+```
+
+Show this report. Wait for the user's read. They may correct,
+add, or clear items before you draft.
+
+#### Step 3.5 — Requirements drilling
+
+With the recon report on the table, sharpen the questions:
+
+- **Concrete observable behavior.** Not "feature works." A
+  specific claim a test or a pair of human eyes can verify.
+- **Edge cases.** Empty state. Max state. Error state.
+  Concurrency edge cases. Network failure cases. The specific
+  ones for THIS feature, named explicitly.
+- **Constraints.** What MUST NOT change? Schema-owned by
+  another team? UI conventions to respect? Performance budget?
+  Memory constraints? Backwards compat?
+- **Test contract.** Specific test scenarios — not "E2E test"
+  but "test case A: user X does Y, asserts Z" with concrete
+  inputs and expected outputs.
+- **Acceptance bar.** A short bullet list, each item
+  independently verifiable.
+
+Push back on vague answers. *"Make it nice"* isn't a
+constraint; *"matches existing inspection list visual density
+(one row per item, no avatars, ≤44pt row height)"* is.
+
+#### Step 3.6 — Per-file rationale
+
+For each file in "Files expected to change":
+
+- **WHAT** specifically changes (added function, modified
+  handler, new component, schema migration, etc.).
+- **WHY** (which acceptance criterion does this file deliver?
+  which integration point does it satisfy?).
+- **Anything gated or schema-owned** (per `task-rules.md` and
+  CLAUDE.md). Flag for the user — these are blockers if
+  approval isn't pre-cleared.
+
+The file list should be exhaustive. The implementing developer
+must not need to touch a file outside this list without
+updating the task first (per `task-rules.md` "Scope
+discipline").
+
+#### Step 3.7 — Draft the full spec
+
+Use `task-template.md`'s shape. The spec should be
+**self-sufficient** — a developer reading only the spec, with
+no chat context, should be able to implement.
+
+Inline the recon report's findings:
+- "References" section cites both internal patterns and
+  external doc URLs.
+- "Files expected to change" lists every file with the WHAT/WHY.
+- "Acceptance criteria" is the sharp bar drilled in 3.5.
+- "Test plan" lists specific scenarios drilled in 3.5.
+- "Open questions / risks" carries forward any unresolved
+  items from the recon report.
+
+#### Step 3.8 — User-context check (judgment calls only the user can make)
+
+Before the final sign-off, scan your draft for **judgment calls
+that depend on user knowledge** — things the code doesn't say,
+the docs don't say, and you can't decide on your behalf. Every
+unresolved judgment call here is a question the implementing
+developer would otherwise ask the user later. Capture it now.
+
+Common categories:
+
+- **Business / product decisions.** Naming, copy, behavior
+  preferences, prioritization between equally valid options.
+  *"We could call this 'archive' or 'hide' — which fits the
+  product voice?"*
+- **UX / interaction preferences.** Animation, density, error
+  message tone, defaults, keyboard shortcuts.
+  *"Tap-and-hold or long-press to delete? The existing pattern
+  is split."*
+- **Trade-offs between equivalent technical paths.** When two
+  patterns work and recon found both being used.
+  *"This area uses both Combine and async/await. New code
+  should follow which?"*
+- **Real-world edge cases.** Behavior that depends on
+  customer / user behavior the code can't tell you.
+  *"What happens when a user has 10,000 inspections? Is
+  pagination required for the MVP, or acceptable to do later?"*
+- **Constraints from outside the repo.** Customer agreements,
+  deployment timing, integration contracts with other teams.
+  *"Does this need to be feature-flagged because the iOS app
+  needs to land first?"*
+
+For each unresolved item, ask explicitly. Don't assume.
+Don't decide on the user's behalf. Format:
+
+```markdown
+## User-context questions before I finalize this spec
+
+1. <specific question with two or three concrete options
+   to choose between>
+2. <specific question, with what's at stake if we pick wrong>
+3. ...
+
+If everything's settled, just say "good, finalize."
+```
+
+Wait for answers (or "good, finalize"). Bake the answers into
+the spec — typically into Acceptance criteria, Test plan, or
+Open questions sections.
+
+If the spec genuinely has no judgment calls left (everything is
+grounded in code + docs), say so explicitly: *"No user-context
+questions — all decisions grounded in recon. Finalizing."*
+Don't fabricate questions to look thorough.
+
+#### Step 3.9 — Show, sign-off, write
+
+Render the full spec (now with user-context answers baked in);
+the user confirms or pushes back. On confirmation, write to
+`tasks/backlog/<file>.md` overwriting the stub. Don't commit.
 
 ### Operation 4 — Reprioritize within a phase
 

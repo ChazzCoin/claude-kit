@@ -14,6 +14,277 @@ human-readable rollback).
 
 ---
 
+## Unreleased
+
+(no entries yet)
+
+---
+
+## v0.7.0 — 2026-05-01
+
+A foundational release. Five interlocking pieces:
+
+1. **Structured outputs catalogue + selection rules** — a shared
+   design language for kit deliverables (status reports, deploy
+   reports, audits, etc.), with 3 high-leverage skills wired as
+   proof-of-concept.
+2. **Live HTML dashboard** — opt-in browser-rendered companion
+   that visualizes kit state in real time, with environment-aware
+   start (auto-opens browser locally; prints SSH tunnel command on
+   remote; points at platform port-forwarding for cloud editors).
+3. **Git flow safety rules** — five non-negotiable rules in
+   `task-rules.md` that protect `main` from unauthorized merges,
+   require version-tagging on every deploy, and route all
+   releases through `/release`.
+4. **`/prototype` rewrite** — replaced the rapid-R&D 4-step loop
+   with a mini task manager scoped to `tasks/proto/<slug>/`, fully
+   isolated from main backlog/roadmap.
+5. **`/task` Operation 3 refinement** — added internal +
+   external reconnaissance steps before drafting full specs.
+   The task-builder→task-developer interface gets thorough
+   research up front so implementation runs without re-asking
+   questions.
+
+### Added
+
+#### Structured outputs
+
+- **`kit/output-styles.md`** — catalogue of 34 visual templates
+  (hero cards, dashboards, roadmaps, deployment reports, severity
+  audits, kanban boards, etc.) with consistent glyph vocabulary
+  (`● ◐ ○ ✓ ✗ ▲ ▼ ═ ▌ ★ ▶`) and semantic color palette. Designed
+  for monospace + ANSI color, with a "two encodings beat one"
+  principle so output stays readable when color is stripped.
+- **`kit/output-rules.md`** — selection / composition / discipline
+  layer. Defines what counts as a "structured output" (status,
+  deploy, audit, backlog, etc.) vs. conversational reply; maps
+  each kit scenario to a catalogue §; sets composition rules;
+  pins glyph and color semantics; states rendering constraints
+  (monospace + code fences); documents fallback behavior when
+  no entry fits.
+
+#### Live HTML dashboard (opt-in)
+
+- **`kit/dashboard/`** — opt-in, NOT installed by `bin/init`,
+  NOT synced by default. Single-file Python server + single-file
+  HTML page. Zero runtime deps beyond Python 3.9+ stdlib.
+  - **`dashboard.py`** (~410 LOC) — server + state gatherer +
+    environment detection. Subcommands: `start [--port]
+    [--no-open]`, `stop`, `status`, `refresh`. Auto-detects
+    local / SSH / Codespaces / Gitpod / dev container and tailors
+    output. Locally auto-opens the browser; on SSH prints a
+    ready-to-paste `ssh -L PORT:localhost:PORT user@host` tunnel
+    command; on cloud editors points at the platform's port
+    forwarding UI.
+  - **`index.html`** (~700 LOC) — vanilla JS, inline CSS, no
+    build. Dark theme. Polls `/state.json` every 3s.
+  - **`README.md`** — opt-in install + architecture + environment
+    matrix.
+  - **`.gitignore`** — runtime artifacts (`state.json`,
+    `.dashboard.pid`, `.dashboard.log`, `__pycache__/`).
+- **`kit/skills/dashboard/SKILL.md`** — `/dashboard start | stop
+  | status | refresh | restart`. Detects installation; surfaces
+  opt-in step if missing. §25 Alert variants for status messages.
+
+  **Dashboard panels (single "kit" view):**
+
+  | Panel | Source | Catalogue § |
+  |---|---|---|
+  | Production | `git describe --tags`, deploy frequency strip | §2 + §28 |
+  | Git state | branch, dirty/clean, ahead/behind, worktrees | §2 + §17 |
+  | Activity | `tasks/AUDIT.md` (or `CHANGELOG.md` fallback) | §23 |
+  | Open PRs | `gh pr list` (graceful degrade) | tabular |
+  | In flight | `tasks/active/*.md` | tabular |
+  | Inbox | `.claude/inbox/*` | tabular |
+  | Backlog | `tasks/ROADMAP.md` phases | §3 / §4 |
+  | Recent commits | `git log -10 origin/main` | §16 |
+  | Anything off | derived warnings (stale PR, dirty main) | §25 |
+
+  Bound to `127.0.0.1` only — never LAN-exposed. SSH tunnel is
+  the only way in for remote setups.
+
+### Changed
+
+#### `kit/task-rules.md` — Git flow discipline (5 new rules)
+
+New top-level section between "Vocabulary" and "Scope discipline."
+Five non-negotiable rules:
+
+1. **Always branch.** Every change starts on a new branch. Never
+   edit code on `main` directly. Naming table for `task/`,
+   `chore/`, `hotfix/`, `feat/`, `proto/`, `integration/` prefixes.
+2. **Never merge to `main` without explicit user confirmation.**
+   No skill auto-merges. No agent runs `git push origin main`
+   without a confirm in chat.
+3. **Tag every deploy ("tag and bag").** Every deploy from `main`
+   is annotated-tagged with a semver version. No exceptions.
+4. **Protect `main` like prod.** Never force-push to `main`. Any
+   action touching `main` (merge, rebase, push, force) is
+   user-confirmed.
+5. **Deploys route through `/release`.** Never run deploy
+   commands directly bypassing the skill. The skill is the gate
+   that enforces pre-flight, version, deploy, tag, audit.
+
+Plus an "Output styles" reference paragraph at the top of
+`task-rules.md` (parallel to "Platform extensions"), pointing
+to `output-rules.md` and `output-styles.md`.
+
+#### `/prototype` — full rewrite
+
+Replaced the rapid-R&D 4-step loop (gather → plan → do → present)
+with a mini task manager scoped to `tasks/proto/<slug>/`. The
+prototype is its own complete bubble:
+
+- Branch `proto/<slug>` (off `main` by default).
+- Directory `tasks/proto/<slug>/{PHASES.md, ROADMAP.md, backlog/,
+  active/, done/}` mirroring the kit's task structure but kept
+  totally isolated.
+- Brief at `docs/proto/<slug>.md`.
+
+Subcommands: `start <slug>`, `resume <slug>`, `add <title>`,
+`spec <id>`, `move <id> active|done`, `status`, `list`,
+`graduate`, `shelve`, `drop`. Graduation moves prototype tasks
+into main `tasks/` (explicit user action only). Per the new
+git-flow Rule 2, no path in `/prototype` ever auto-merges to
+`main`.
+
+#### `/task` Operation 3 — major refinement (the spec-drafting flow)
+
+Added two reconnaissance phases before drafting:
+
+- **Internal recon** — read `CLAUDE.md`, the stub, referenced
+  files, grep / glob for existing patterns matching the task's
+  domain, identify likely-touched files. Every claim in "Files
+  expected to change" must be grounded in code actually read.
+- **External recon** — fetch current official documentation for
+  the frameworks involved. LLM training cutoffs lag the real
+  state of frameworks; the spec must feed accurate, current
+  context to whoever implements. Concrete doc-source examples
+  per stack:
+  - iOS / macOS — `developer.apple.com/documentation/<framework>/<symbol>`
+  - Android — `developer.android.com/{jetpack,reference}/...`
+  - React / Vue / Next — `react.dev`, `vuejs.org`, `nextjs.org` refs
+  - Flask / FastAPI / Django — official framework docs
+  - Plus generic guidance for any stack.
+  Use `WebFetch`, targeted to the specific symbols this task
+  touches.
+- **Synthesize a recon report** — show the user what you found
+  (existing patterns, integration points, current docs say,
+  open questions) **before drafting the spec**. The user can
+  correct your read of the territory.
+
+Then sharpened requirements drilling (concrete observable
+behavior, named edge cases, MUST-NOT-change constraints,
+specific test scenarios), per-file rationale (WHAT changes
+WHERE and WHY for every file), and the spec draft itself.
+
+A new behavior-contract bullet — *"Don't draft from memory"* —
+makes the rule explicit: framework code goes through WebFetch,
+not LLM memory.
+
+#### `/spec-phase` — inherits refined Op 3
+
+Step 3 now delegates to the full `/task` Operation 3 recon flow
+(internal + external + synthesize + drill + draft). Surfaces
+the cost upfront when phases are large: *"7 stubs × ~10–20 min
+recon each = an hour or two. Spec all 7 or pick a subset?"*
+
+#### `/task` Operation 3 — Step 3.8 user-context check (added)
+
+After drafting the spec, before showing for sign-off, the skill
+now scans for **judgment calls only the user can make** —
+business / product decisions, UX preferences, equally-valid
+technical paths, real-world edge cases, outside-the-codebase
+constraints. Surfaces them as explicit questions before
+finalizing, so the implementing developer doesn't have to
+re-ask later. *"No user-context questions"* is a valid answer
+when the spec is fully grounded in code + docs.
+
+Old Step 3.8 (show / sign-off / write) renumbered to Step 3.9.
+
+#### `/wrangle` — dependency inventory (new area #13)
+
+Phase 1 now produces `docs/wrangle/13-dependencies.md` — every
+external library, SDK, package, and third-party service the
+project uses, parsed from every manifest in the repo
+(`package.json`, `Package.swift`, `Podfile.lock`,
+`requirements.txt`, `pyproject.toml`, `build.gradle*`,
+`Gemfile.lock`, `go.mod`, `Cargo.lock`, etc.). Three sections:
+libraries (vendored code), third-party services (runtime
+integrations), dev/build/CI tools. Each row carries the
+official doc URL.
+
+This file becomes the **starting list** for `/task` Operation
+3's external reconnaissance — when speccing a task that
+touches Realm or Kingfisher or AVKit, /task knows where to
+WebFetch from without re-discovering.
+
+`.claude/context/project-map.md` tech stack section now also
+includes per-entry doc URLs and links to the full inventory.
+
+#### `/audit` — external libraries section (added to Part 1)
+
+Audit reports now include an "External libraries used in this
+slice" table — every external library / SDK / service used in
+the audited code, with version + purpose + doc URL. Per-slice
+scope (not the whole project — that's `/wrangle`'s job).
+
+#### `/skills/new-skill/SKILL.md`
+
+Skeleton requires future skills to pin a catalogue §-entry from
+the `output-rules.md` selection table.
+
+#### `MANIFEST.json`
+
+- Version bumped 0.5.0 → 0.6.0.
+- Registers `output-rules.md` and `output-styles.md` for sync.
+  `bin/init`'s `kit/*.md` glob (added in v0.5.0) picks them up
+  automatically — no init script edit needed.
+
+### Wired skills (catalogue proof-of-concept)
+
+- **`/status`** — pins §2 Live status dashboard (project state
+  row) + §23 Activity timeline (AUDIT log). Markdown tables
+  retained for commits and PRs (legitimate tabular data). §25
+  Alert variants for the "anything off" section. Section emoji
+  (🚀 🌿 📦 🔀 🛠 🗺 📜 ⚠️) dropped from headings — the
+  catalogue's typographic glyphs (`● ◐ ○ ◆`) carry the visual
+  weight inside catalogue blocks.
+- **`/release`** — pins §5 Deployment report for the closing
+  artifact, §2 Live dashboard for the pre-flight check, §25
+  Alert variants for failure conditions at any step. The prior
+  closing-report markdown table replaced by the catalogue's
+  two-column key/value rows below the deployment box.
+- **`/audit`** — pins §6 Severity audit for the Findings
+  section. **Structural change worth flagging:** the prior 3
+  buckets (✅ working / ⚠️ shaky / 🚧 gaps) collapse into 2
+  sections — "What's working" (praise, plain bullets) and
+  "Findings" (§6 severity tiers: CRITICAL / HIGH / MEDIUM /
+  LOW). Severity calibrates honesty better than category.
+
+Remaining ~30 skills wire to the catalogue in a future release.
+
+### Notes
+
+- **Retroactive tags.** v0.3.0, v0.4.0, v0.5.0 are now
+  annotated-tagged retroactively on their respective merge
+  commits — closing the audit-log drift surfaced by the
+  `/status` simulation. Tag history matches release history
+  going forward, per Rule 3.
+- **Aesthetic shift in 3 wired skills.** Output from `/status`,
+  `/release`, `/audit` now looks distinctly different —
+  denser, more terminal-app in feel. Other skills follow in a
+  future release.
+- **Dashboard is opt-in.** Not in `MANIFEST.json` default sync.
+  Users copy `kit/dashboard/` into `.claude/dashboard/` when
+  they want it. The `/dashboard` skill itself ships universally
+  (just markdown) and surfaces the install step on first use.
+- **Backwards compatible.** Skills not yet wired to the
+  catalogue continue rendering in their prior style — nothing
+  breaks.
+
+---
+
 ## v0.5.0 — 2026-05-01
 
 Bundles four post-v0.4.0 merges that shipped without a version bump

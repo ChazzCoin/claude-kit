@@ -1,335 +1,553 @@
 ---
 name: prototype
-description: Rapid R&D mode. Isolate a feature into its own `proto/<slug>` branch, ignore the roadmap and task pipeline, and move from idea to demoable code as fast as possible. Four steps — gather, plan, do, present — optimized for speed and minimal code. Triggered when the user wants to "prototype", "play with", "spike", "test out", or "rapid-build" a feature — e.g. "/prototype", "let's prototype X", "spike Y", "I want to try out Z fast".
+description: Mini task manager for an isolated prototype phase. Creates and manages a `proto/<slug>` branch + parallel task tree at `tasks/proto/<slug>/`, mirroring the kit's task system but kept entirely separate from main backlog/roadmap. Subcommands — start, resume, add, spec, move, status, list, graduate, shelve, drop. Triggered when the user wants to "prototype", "play with", "spike", "test out", or "rapid-build" a feature in isolation — e.g. "/prototype", "let's prototype X", "spike Y", "I want to try Z without touching the roadmap".
 ---
 
-# /prototype — Rapid R&D mode
+# /prototype — Isolated prototype phase
 
-You become a prototype engineer. Forget the roadmap. Forget the
-backlog. Forget the phase structure. The goal is the **fastest
-path from idea to a thing the user can poke at**, on an isolated
-branch that won't pollute mainline work.
+Set up a prototype as its own little task system, branched and
+folder'd off the main work. The skill handles the **lifecycle** —
+scaffolding, task ops within the prototype scope, graduation, and
+exit hatches — without ever touching main `tasks/` or main
+`ROADMAP.md`.
 
-This is research and development mode. Speed > polish. Reuse >
-new code. One file > many files. Whatever gets to a runnable
-demo soonest, without making a mess of the rest of the repo.
+Per CLAUDE.md ethos: **calibrate honestly.** A prototype is R&D.
+It's allowed to be rough. But the WORK inside follows the kit's
+normal task discipline — full specs, acceptance criteria,
+branch-per-task, the works. Just isolated from the production
+roadmap so it doesn't pollute mainline planning.
 
-## The honest tradeoff
+## What this skill creates
 
-This skill **deliberately loosens the kit's normal discipline**:
+Every prototype lives in its own complete bubble:
 
-- No spec file in `tasks/backlog/`.
-- No ROADMAP entry.
-- No PHASES update.
-- No tests by default.
-- Lighter code review than `/task` would do.
+```
+proto/<slug>                  # git branch, off main (or current)
+tasks/proto/<slug>/
+├── PHASES.md                 # one phase: this prototype
+├── ROADMAP.md                # the phase + ordered task list
+├── backlog/                  # task spec files (stubs and full specs)
+├── active/
+└── done/
+docs/proto/<slug>.md          # prose brief — what / why / acceptance / out-of-scope
+```
 
-That tradeoff is the point. Prototypes are throwaway-friendly by
-design — the cost of speccing, planning, and testing isn't worth
-paying until the idea has been *seen and felt*.
+Two parts:
 
-**Surface this to the user at session start.** Confirm that
-prototype mode is what they actually want. If they describe
-something that's clearly production-bound or already on the
-roadmap, push back once: "this sounds like a real feature — do
-you want `/task` instead?" Then do what they say.
-
-When the prototype proves out, **graduate it via `/task`** so the
-real version goes through the normal discipline (spec, tests,
-review, commit, ship). This skill produces sketches, not
-products.
+- **Branch + task tree** — where the work happens. The task tree
+  mirrors the kit's main `tasks/` shape but every path is scoped
+  to `tasks/proto/<slug>/`. Skills like `/task`, `/spec-phase`,
+  `/backlog`, `/roadmap` operate on main `tasks/` and **don't**
+  reach into the prototype scope. `/prototype` handles all task
+  ops within the prototype itself.
+- **Brief** — `docs/proto/<slug>.md` describes the prototype's
+  purpose, acceptance bar, out-of-scope, and iteration log. Read
+  first by anyone (you included) coming back cold.
 
 ## Behavior contract
 
-- **Branch is required.** Every prototype lives on its own
-  `proto/<slug>` branch off the user's current working branch
-  (usually `main`). Never prototype on `main` or on a feature
-  branch with unrelated work in flight.
-- **Roadmap and tasks are ignored.** Do not read or write
-  `tasks/ROADMAP.md`, `tasks/PHASES.md`, `tasks/backlog/`, or
-  any other task-tracking file during a prototype session. The
-  prototype doesn't exist in those structures by design.
-- **Speed over polish.** Pick the shortest path. Reuse existing
-  utilities, components, and patterns. Don't introduce new
-  dependencies if an existing one will do. Don't refactor on
-  the way through.
-- **No tests by default.** Skip unit and integration tests
-  unless the user explicitly asks for one. A quick smoke check
-  in chat is fine.
-- **Quick code review only.** A glance for obvious bugs and
-  security smells before handing off. Not a full audit.
-- **One commit at the end.** All prototype changes go in a
-  single commit on the proto branch. Don't commit incrementally
-  unless the user asks.
-- **Always leave a doc behind.** Write `docs/proto/<slug>.md`
-  describing what was built, why, and how to run it — even if
-  the user shelves the work. Future-you (or future-them) needs
-  the breadcrumb.
-- **No production wiring.** Don't add the prototype to app
-  routing, navigation, build pipelines, deploy scripts, or any
-  other surface that could ship to users. The point is
-  isolation.
+- **Isolation is the load-bearing rule.** Never read or write
+  main `tasks/` files (`tasks/ROADMAP.md`, `tasks/PHASES.md`,
+  `tasks/AUDIT.md`, `tasks/{backlog,active,done}/`). The
+  prototype is invisible to main planning by design. Graduation
+  is the **only** path from prototype scope into main.
+- **Work happens on `proto/<slug>` and its sub-branches.** Per
+  the git-flow Rule 1 in `task-rules.md`, each task within the
+  prototype gets its own sub-branch (`task/TASK-XXX-<slug>` off
+  `proto/<slug>`). `/prototype` does NOT implement tasks — it
+  manages spec lifecycle. Implementation follows the same
+  task-rules.md discipline as everything else.
+- **Slug discipline.** Slugs are kebab-case, single-word
+  preferred — `streaming-ui`, `webhook-test`, `auth-redesign`.
+  Used as both branch suffix and directory name; must match.
+- **Graduation is explicit.** Promoting prototype tasks into
+  main `tasks/` is a deliberate user action via `/prototype
+  graduate`. Until then, none of the prototype's work is visible
+  to `/roadmap`, `/backlog`, `/status`, etc.
+- **Never auto-merge to main.** Per git-flow Rule 2, no path in
+  this skill merges to `main`. Graduation stages file moves;
+  the user merges through the normal path (their feature branch,
+  per Rule 2).
+- **Never auto-commit.** All file writes land in the working
+  tree uncommitted. The user reviews with `git diff` and commits
+  when ready.
 
-## The flow
+## Output structure
 
-### Step 1 — Gather
+**Catalogue entry.** §2 Live status dashboard for `status` (shows
+phase + task counts + branch state). §25 Alert variants for
+confirmations and warnings (start / move / drop). §1 Hero
+completion card for graduation.
 
-Open the session with the tradeoff (above), then collect:
+Concrete templates inlined per subcommand below.
 
-- **What's the feature?** One-paragraph description in the user's
-  own words.
-- **Why prototype it?** Are they exploring a UX idea? Validating
-  a technical approach? Comparing two options? The "why" shapes
-  what "good enough to demo" means.
-- **What does success look like?** What needs to work for the
-  prototype to be worth showing? Don't accept "it should work" —
-  push for a concrete acceptance bar (e.g. "I can drag a node
-  and the edges follow", "an HTTP request returns the model's
-  output").
-- **What's out of scope?** Explicitly. Auth, persistence,
-  error handling, polish, mobile responsiveness — most of these
-  should be out for a prototype.
-- **Any constraints?** Stack, libraries to use or avoid, files
-  that mustn't be touched, time budget.
+## Subcommands
 
-End the gather with a tight reflect-back:
+The skill routes on the verb after `/prototype`. Bare
+`/prototype` (no verb) runs `status` if a proto branch is
+checked out; otherwise prompts to `start`.
+
+| Command | Effect |
+|---|---|
+| `start <slug>` | create branch + scaffolding + brief |
+| `resume <slug>` | switch to existing prototype |
+| `add <title>` | file a stub task in the prototype's backlog |
+| `spec <id>` | expand stub → full spec (same rigor as /task Op 3) |
+| `move <id> active` | mv backlog/<id> → active/ |
+| `move <id> done` | mv active/<id> → done/ |
+| `status` | §2 dashboard of prototype state |
+| `list` | all proto/* branches + their state |
+| `graduate` | promote prototype tasks → main `tasks/` (explicit) |
+| `shelve` | exit, leave everything in place |
+| `drop` | delete branch + dir + brief (confirm twice) |
+
+### Step 1 — start <slug>
+
+Pre-flight:
+
+1. **Slug validity.** Kebab-case, no slashes, no spaces. If
+   invalid, ask for a re-spelled slug.
+2. **Collisions.** Check for existing branch `proto/<slug>` or
+   directory `tasks/proto/<slug>/`. If either exists, surface
+   that and offer `resume`.
+3. **Working tree.** Must be clean. If dirty, surface and ask.
+4. **Base branch.** Branch off `main` by default. If the user
+   wants to branch off something else, they say so explicitly.
+
+Gather (one block, terse — don't accept vague answers):
 
 ```
-You want to prototype: <feature, one sentence>
-Acceptance: <one-line bar>
+Prototyping: <feature, one sentence>
+Acceptance bar: <one line — what counts as "the prototype works">
 Out of scope: <comma list>
 Constraints: <comma list, or "none">
 
 Sound right?
 ```
 
-Wait for confirmation before moving on.
+Wait for confirmation. Push back on "it should work" — demand a
+concrete acceptance bar.
 
-### Step 2 — Plan
+On confirmation, scaffold:
 
-A short plan, surfaced in chat (not written to disk):
-
-1. **The ask in one sentence.**
-2. **Acceptance criteria** — bullet list, ≤5 items, each
-   independently verifiable.
-3. **Minimal architecture** — sketch the moving parts. What's
-   new, what's reused, what's the data/control flow. Pseudocode
-   is fine. ASCII diagram if helpful.
-4. **Reuse audit** — explicitly call out: *what existing code
-   does this lean on, and where does it live?* Read enough of
-   the repo to make this real, not invented.
-5. **New files / changed files** — exhaustive list, with the
-   reason for each.
-6. **Quickest route** — name the path you're picking. Mention
-   one alternative you considered and why you skipped it. Speed
-   is the tiebreaker.
-
-Show the plan. Wait for sign-off. Iterate if the user pushes
-back. Don't start implementing before the user says go.
-
-### Step 3 — Do
-
-Default: **one task**, executed end-to-end in the same session.
-
-If the scope genuinely can't fit in one pass (the user agrees,
-not your guess), break it into the **smallest number of tasks
-possible** — typically 2, rarely 3, never more. Each task is:
-
-- A 1-line title.
-- A 1-paragraph "what + acceptance".
-- Done immediately, in sequence.
-
-Execution rules:
-
-- **Code first, polish never.** Write the code that makes the
-  acceptance bar pass. No premature abstraction. No defensive
-  validation beyond what's needed for the demo to not crash.
-- **Reuse aggressively.** If you find existing code that does
-  80% of the job, use it and patch the 20%. Don't rewrite for
-  cleanliness.
-- **No new dependencies** unless absolutely required. If you
-  add one, name it and the alternative you considered.
-- **Quick code review at the end.** Walk the diff yourself.
-  Flag: obvious bugs, security smells (injection, secret leaks,
-  unbounded loops), accidental edits to unrelated files. Fix in
-  place. Skip stylistic polish.
-- **Commit once.** One commit on the `proto/<slug>` branch with
-  message:
-  ```
-  prototype: <feature> — <one-line what>
-
-  Built via /prototype. Acceptance: <bar>.
-  See docs/proto/<slug>.md for the full breakdown.
-  ```
-
-If the user's plan changed mid-session, that's fine — note the
-shift in the chat and proceed. Don't go back and re-plan
-formally.
-
-### Step 4 — Present
-
-Hand the prototype off for testing. Output:
-
-```markdown
-# /prototype — <feature> ready for review
-
-**Branch**: `proto/<slug>`
-**Commit**: <sha-short> — "<commit-title>"
-**Doc**: `docs/proto/<slug>.md`
-
-## How to run it
-
-<concrete steps. Commands. URLs. Any setup needed. "It just
-works on `main` after checkout" if true.>
-
-## What it does
-
-<1-2 paragraph walkthrough of the user-visible behavior.>
-
-## What it does NOT do
-
-<bullet list of out-of-scope items the user might assume work
-but don't.>
-
-## What I'd want to revisit if this graduates
-
-<bullet list — places where speed beat correctness, missing
-tests, hardcoded values, etc. Be specific. This is the input
-to a real /task spec if the prototype proves out.>
-
-## Next move
-
-Pick one:
-- **Iterate.** Keep me here for another round on this branch.
-- **Graduate.** Hand off to /task to spec a real version.
-- **Shelve.** Branch stays. I move on.
-- **Drop.** Delete the branch and the doc.
+```sh
+git checkout -b proto/<slug> main
+mkdir -p tasks/proto/<slug>/backlog tasks/proto/<slug>/active tasks/proto/<slug>/done
+# write PHASES.md, ROADMAP.md, brief
 ```
 
-### After Step 4 — Iteration mode
+Files to create:
 
-If the user says "iterate", stay in `/prototype` mode on the
-same branch. Skip Step 1 (already scoped). Re-do Step 2 lightly
-(what's the next change?), then Step 3, then Step 4 again.
+**`tasks/proto/<slug>/PHASES.md`**:
+```markdown
+# Phases — <slug> prototype
 
-Each iteration is its own commit on the proto branch. Keep the
-`docs/proto/<slug>.md` doc updated with each round.
+## Phase 1: <slug> prototype
 
-If the user says "shelve" or "drop", state the consequence
-clearly and confirm before deleting anything:
+<scope paragraph derived from the gather: 2–4 sentences. What's
+in, what's out, what success looks like. The scope IS the
+contract; if a task doesn't fit, it doesn't belong here.>
+```
 
-- **Shelve** = branch and doc remain; you exit the skill.
-- **Drop** = `git branch -D proto/<slug>` and `rm
-  docs/proto/<slug>.md` — irreversible without recovery from
-  reflog. Confirm explicitly before doing this.
+**`tasks/proto/<slug>/ROADMAP.md`**:
+```markdown
+# Roadmap — <slug> prototype
 
-## The proto doc shape
+## Phase 1: <slug> prototype
 
-`docs/proto/<slug>.md` is written at the end of Step 3 (before
-Step 4 runs). It exists so a future session — yours, the user's,
-or someone else's — can pick up the prototype cold.
+<copy phase scope here>
 
+(no tasks yet — add via `/prototype add <title>`)
+```
+
+**`docs/proto/<slug>.md`**:
 ```markdown
 # Prototype: <feature title>
 
 **Date**: YYYY-MM-DD
 **Branch**: proto/<slug>
-**Status**: <Open · Iterating · Shelved · Graduated · Dropped>
+**Status**: Active
 
 ## What it is
 
-<1-paragraph description.>
+<from the gather, 1 paragraph>
 
-## Why it was built
+## Why prototype this
 
-<1-paragraph motivation. What question was being explored?>
-
-## How to run it
-
-<concrete steps.>
+<motivation — what question is being explored>
 
 ## Acceptance bar
 
-<bullet list — what counts as "the prototype works".>
+<bullet list — what makes the prototype "work">
 
-## What's out of scope
+## Out of scope
 
-<bullet list of intentional omissions.>
-
-## Architecture sketch
-
-<short — files touched, key data flows, dependencies.>
-
-## Reused from the existing codebase
-
-<bullet list of existing files / utilities / components leaned
-on. Cite path:line.>
-
-## Known sharp edges
-
-<bullet list — places where speed beat correctness. Each is a
-candidate for a real /task spec if this graduates.>
+<bullet list — what we deliberately don't do here>
 
 ## Iteration log
 
-- YYYY-MM-DD — initial build. <one line>
-- YYYY-MM-DD — iteration 1. <one line>
+- YYYY-MM-DD — prototype started.
 ```
+
+Render a §25 SUCCESS alert with the next-step hint:
+
+````markdown
+```
+┌─ ✓  PROTOTYPE STARTED ──────────────────────────────────────┐
+│  proto/<slug>                                               │
+│                                                             │
+│  scaffolding written:                                       │
+│    tasks/proto/<slug>/{PHASES,ROADMAP}.md                   │
+│    tasks/proto/<slug>/{backlog,active,done}/                │
+│    docs/proto/<slug>.md                                     │
+│                                                             │
+│  next · /prototype add <first task title>                   │
+└─────────────────────────────────────────────────────────────┘
+```
+````
+
+### Step 2 — resume <slug>
+
+Pre-flight:
+- Branch `proto/<slug>` exists locally.
+- Directory `tasks/proto/<slug>/` exists.
+
+If both exist, `git checkout proto/<slug>` and run `status`.
+
+If branch exists but directory doesn't (or vice versa), surface
+the inconsistency and ask before proceeding — don't auto-repair.
+
+If no slug given, list available proto branches and ask which.
+
+### Step 3 — add <title>
+
+File a stub task into the prototype's backlog.
+
+1. **Detect current proto slug** from current branch (must be
+   on `proto/<slug>`). If not, surface and stop:
+   *"Not on a proto branch. Run `/prototype resume <slug>` first."*
+2. **Determine next TASK-NNN** by scanning
+   `tasks/proto/<slug>/{backlog,active,done}/` for highest ID.
+   Zero-padded three digits.
+3. **Write stub** at
+   `tasks/proto/<slug>/backlog/TASK-NNN-<slug>.md`:
+   ```markdown
+   # TASK-NNN: <title>
+
+   **Phase**: Phase 1: <prototype slug> prototype
+   **Status**: STUB — full spec drafted before implementation
+
+   <one-line user story or "TODO: user story">
+   <one-line why or "TODO: why">
+   ```
+4. **Append to ROADMAP.** Add the task line under the phase's
+   bullet list in `tasks/proto/<slug>/ROADMAP.md`.
+5. Render a §25 INFO alert with the file path:
+
+````markdown
+```
+┌─ ⓘ  STUB FILED ─────────────────────────────────────────────┐
+│  TASK-NNN — <title>                                         │
+│  tasks/proto/<slug>/backlog/TASK-NNN-<slug>.md              │
+│                                                             │
+│  next · /prototype spec TASK-NNN  (when ready to implement) │
+└─────────────────────────────────────────────────────────────┘
+```
+````
+
+### Step 4 — spec <id>
+
+Expand a stub into a full spec, using the **same rigor as
+`/task` Operation 3** — code reconnaissance, requirements
+drilling, per-file rationale. Scope is
+`tasks/proto/<slug>/backlog/`, not main.
+
+The flow mirrors `/task` Operation 3 exactly:
+
+1. Read the stub.
+2. **Code reconnaissance.** Read CLAUDE.md (project facts),
+   referenced files in the stub, grep for existing patterns
+   matching the task's domain, identify likely-touched files
+   from topic + repo structure. Render a summary: *"here's what
+   exists / what you're extending / where it integrates."*
+3. **Requirements drilling.** Push for concrete answers:
+   observable behavior (no "feature works"); edge cases (empty,
+   max, error); what MUST NOT change; specific test scenarios.
+4. **Per-file rationale.** For each file in "Files expected to
+   change," state WHAT changes and WHY.
+5. Render the full spec via `task-template.md` shape, written
+   to `tasks/proto/<slug>/backlog/TASK-NNN-<slug>.md`,
+   overwriting the stub.
+6. Show the rendered spec; wait for sign-off; write.
+
+This step writes ONE file (the spec). No commits. No branch
+creation — implementation happens on a separate
+`task/TASK-NNN-<slug>` sub-branch off `proto/<slug>` per Rule 1,
+which the user creates when starting the work.
+
+### Step 5 — move <id> active|done
+
+Lifecycle the task through the prototype's pipeline.
+
+`active`:
+```sh
+git mv tasks/proto/<slug>/backlog/TASK-NNN-*.md tasks/proto/<slug>/active/
+```
+Implementation begins on a sub-branch
+(`task/TASK-NNN-<slug>` off `proto/<slug>`, per git-flow Rule 1).
+
+`done`: same pattern, active → done. Run after the task's PR
+merges back into the proto branch.
+
+Render a §25 INFO alert:
+
+````markdown
+```
+┌─ ⓘ  TASK-NNN MOVED → ACTIVE ────────────────────────────────┐
+│  tasks/proto/<slug>/active/TASK-NNN-<slug>.md               │
+│                                                             │
+│  next · branch off proto/<slug> as task/TASK-NNN-<slug>     │
+│         and implement                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+````
+
+### Step 6 — status
+
+Render the prototype's current state as §2 Live status dashboard
+followed by tabular detail:
+
+````markdown
+# /prototype — <slug> · YYYY-MM-DD
+
+```
+┌─ proto · <slug> · HH:MM UTC ─────────────────────────────────┐
+│                                                              │
+│  ● Branch       proto/<slug> · <clean|N changes uncommitted> │
+│  ● Phase        Phase 1: <slug> prototype                    │
+│  ◐ In flight    <N> active                                   │
+│  ○ Backlog      <N> stubs · <M> spec'd                       │
+│  ● Done         <N>                                          │
+│                                                              │
+│  next · <task at top of active, or "spec next backlog item">  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## Active
+
+- **TASK-NNN — <title>** — <one-line status>
+
+## Backlog
+
+| ID | Title | State |
+|---|---|---|
+| TASK-NNN | <title> | 📝 stub |
+| TASK-NNN | <title> | 📄 spec'd |
+
+## Done
+
+(collapsed if many)
+
+→ Brief: `docs/proto/<slug>.md`
+````
+
+### Step 7 — list
+
+Show all `proto/*` branches with their state.
+
+```
+PROTOTYPES
+
+▸ <slug-1>      <N> active · <M> backlog · <K> done   (this branch)
+▸ <slug-2>      <N> active · <M> backlog · <K> done
+▸ <slug-3>      shelved (no commits in 30+ days)
+```
+
+### Step 8 — graduate
+
+Promote the prototype's tasks into main `tasks/`. Explicit user
+action — confirm scope before moving anything.
+
+1. **Read all task spec files** in
+   `tasks/proto/<slug>/{backlog,active,done}/`.
+2. **Propose a target phase** in main `tasks/ROADMAP.md` — an
+   existing phase or a new phase to be created. Ask the user to
+   confirm: *"Graduating N tasks → Phase X. Confirm?"*
+3. **On confirm:**
+   - For each task, `git mv tasks/proto/<slug>/<state>/<file>
+     tasks/<state>/<file>`. Renumber IDs if they collide with
+     existing main task IDs (warn).
+   - Append task lines to main `tasks/ROADMAP.md` under the
+     chosen phase.
+   - Update each spec file's "Phase" header to match the new
+     phase name.
+   - Add an entry to main `tasks/AUDIT.md`:
+     `🏗 Graduated prototype <slug> — <N> tasks → Phase <name>.`
+4. **Don't merge.** Per Rule 2, the user owns any merge-to-main
+   step. Graduation produces uncommitted file moves; the user
+   commits and routes through the normal review/merge flow.
+5. **Optionally drop the proto branch + dir + brief** if the
+   user explicitly says so (`/prototype drop` after graduate).
+   Don't auto-drop.
+
+Render §1 Hero completion card:
+
+````markdown
+```
+╭─────────────────────────────────────────────────────────────╮
+│                                                             │
+│   ✦  PROTOTYPE GRADUATED                                    │
+│                                                             │
+│      <slug>                                                 │
+│      <N> tasks → Phase <name>                               │
+│                                                             │
+│   ─────────────────────────────────────────────────────     │
+│                                                             │
+│      tasks/proto/<slug>/  →  tasks/                         │
+│      AUDIT entry appended                                   │
+│      working tree dirty — review and commit                 │
+│                                                             │
+│   →  next: implement per main task pipeline                 │
+│                                                             │
+╰─────────────────────────────────────────────────────────────╯
+```
+````
+
+### Step 9 — shelve
+
+Exit the skill cleanly. Leaves the branch, directory, and brief
+in place. The prototype can be resumed any time.
+
+Update the brief's status header to `Status: Shelved (YYYY-MM-DD)`.
+
+Render a brief §25 INFO alert:
+
+````markdown
+```
+┌─ ⓘ  PROTOTYPE SHELVED ──────────────────────────────────────┐
+│  proto/<slug> stays on disk and in git.                     │
+│  Resume with /prototype resume <slug>.                      │
+└─────────────────────────────────────────────────────────────┘
+```
+````
+
+### Step 10 — drop
+
+Destructive. Confirm twice.
+
+1. **First confirm.** *"Drop prototype <slug>? This deletes
+   branch proto/<slug>, tasks/proto/<slug>/, and
+   docs/proto/<slug>.md. Irreversible without `git reflog`.
+   Type 'drop' to confirm."*
+2. **On 'drop':**
+   ```sh
+   git checkout main      # or whatever branch was previous
+   git branch -D proto/<slug>
+   rm -rf tasks/proto/<slug>/
+   rm docs/proto/<slug>.md
+   ```
+3. Render a §25 WARNING alert confirming what was deleted:
+
+````markdown
+```
+┌─ ⚠  PROTOTYPE DROPPED ──────────────────────────────────────┐
+│  branch         proto/<slug>     deleted                    │
+│  task tree      tasks/proto/<slug>/  removed                │
+│  brief          docs/proto/<slug>.md removed                │
+│                                                             │
+│  recover via `git reflog` if needed.                        │
+└─────────────────────────────────────────────────────────────┘
+```
+````
+
+## Style rules
+
+- **Render structured deliverables per `output-rules.md`.** §2
+  for status dashboards, §25 for confirmations and warnings,
+  §1 for graduation. Glyph and color discipline follow the
+  canonical set.
+- **Isolation is the load-bearing rule.** If you find yourself
+  about to read or write a path under main `tasks/` (NOT
+  `tasks/proto/<slug>/`), STOP. Either you mis-resolved the
+  slug, or you're outside the skill's scope.
+- **Speak in prototype scope.** When the user says "add a task,"
+  the file goes to `tasks/proto/<slug>/backlog/`, not
+  `tasks/backlog/`. Same naming, different path.
+- **Never narrate the lifecycle.** A successful add → §25 INFO
+  alert with the file path. Not a paragraph about what happened.
+- **Push back on vague gathers.** "It should work" isn't an
+  acceptance bar. Demand a concrete checkable claim before
+  scaffolding.
 
 ## What you must NOT do
 
-- **Don't touch `tasks/`.** No ROADMAP entries. No backlog
-  files. No PHASES updates. The prototype is invisible to the
-  task system by design.
-- **Don't merge to `main`** during a prototype session. Even if
-  the user asks. Push back: "graduate via `/task` first so it
-  gets a real spec and review." If they insist on merging
-  prototype-grade code, that's their call — but state the
-  consequence clearly.
-- **Don't add tests** unless the user explicitly asks. This is
-  not a polish skill.
-- **Don't refactor adjacent code** that the prototype touches.
-  Note the smell in the doc's "sharp edges" section, leave the
+- **Don't touch main `tasks/`.** Not its ROADMAP, not its PHASES,
+  not its AUDIT, not its backlog/active/done. The prototype is
+  invisible to main task planning by design.
+- **Don't merge to `main`** during a prototype session. Per
+  git-flow Rule 2, every merge to main is user-confirmed.
+  Graduation only stages tasks; it doesn't merge.
+- **Don't auto-graduate.** Graduation is explicit user action.
+- **Don't infer slugs.** If the user says "/prototype add a thing"
+  but the current branch isn't `proto/<slug>`, ask which
+  prototype.
+- **Don't subdivide tasks** unless the user explicitly says so.
+  Same rule as `/task`.
+- **Don't skip the brief.** `docs/proto/<slug>.md` is part of
+  the prototype's identity — created on `start`, updated on
+  `shelve` / `graduate`.
+- **Don't auto-commit.** All file writes land in the working
+  tree uncommitted. The user reviews and commits.
+- **Don't refactor adjacent code** the prototype touches. Note
+  smells in the brief's "Iteration log" if relevant; leave the
   code alone.
-- **Don't introduce a new dependency silently.** Always name
-  it, the alternative considered, and why you picked it.
-- **Don't skip the doc.** Even on a one-hour throwaway. Even
-  if the user says "I'll just delete it." The doc costs five
-  minutes and pays back the first time anyone (you included)
-  comes back to the branch.
-- **Don't drift into production wiring.** Routing, navigation,
-  build pipeline, deploy scripts, env config — all out. The
-  prototype must not be reachable in any shipped surface.
-- **Don't claim it's done before running it once.** A
-  prototype that hasn't been executed at least once is not a
-  prototype. Smoke-check before Step 4.
+
+## Edge cases
+
+- **Slug already exists** (branch + dir): offer `resume`. Don't
+  overwrite.
+- **Slug exists as branch but no dir** (or vice versa): surface
+  the inconsistency and stop. Don't auto-repair — that's a
+  judgment call the user owns.
+- **Working tree dirty on `start`**: stop. Don't branch over
+  uncommitted work.
+- **User on a non-proto branch when running task ops** (`add`,
+  `spec`, `move`): require they checkout a proto branch first.
+- **Graduation with ID collision**: rename the graduating task
+  to next-available main ID, warn the user, document the
+  rename in AUDIT.
+- **`git mv` on untracked file**: use plain `mv` instead. Same
+  effect, no git error.
+- **No `proto/*` branches exist** when running `list`: render a
+  §26 Empty state with a hint to `/prototype start <slug>`.
 
 ## When NOT to use this skill
 
-- **The feature is real and going to ship.** Use `/task`. The
-  spec, tests, and review discipline exist for a reason.
-- **You're exploring an architecture decision** without writing
-  code. Use `/brainstorm` (tradeoff session) or `/decision`
-  (record a choice).
-- **The codebase is unfamiliar and you need to understand it
-  first.** Use `/wrangle` to map the territory before
-  prototyping in it.
-- **The work spans more than ~2 days of focused effort.** That's
-  not a prototype anymore — it's a feature. Spec it via `/task`
-  or, if the scope is genuinely product-shaping, `/mvp`.
-- **The user wants the prototype to immediately become
-  production code.** Push back: that defeats the purpose. Either
-  prototype properly (and graduate later) or skip the prototype
-  and use `/task`.
+- **The work is real and going to ship to production.** Use the
+  normal task pipeline (`/task` + main `tasks/`). The prototype
+  isolation is overhead you don't need.
+- **Exploring an idea without writing code** → use `/brainstorm`.
+- **The work needs MVP scoping** (greenfield app, big feature) →
+  use `/mvp`.
+- **You're inheriting an unfamiliar codebase** → use `/wrangle`
+  first, then prototype within it.
+- **Adding tasks to an existing main phase** → `/task`.
+  `/prototype add` only operates on the active prototype scope.
 
 ## What "done" looks like for a /prototype session
 
-- A `proto/<slug>` branch exists with one commit (or a small,
-  ordered series of commits if iterations happened).
-- `docs/proto/<slug>.md` exists and accurately describes what
-  was built, why, how to run it, and what the sharp edges are.
-- The user has a concrete next move on the table: iterate,
-  graduate, shelve, or drop.
-- Mainline (`main` and any active feature branches) is
-  unchanged and unaffected.
-- No `tasks/` files were touched.
+The user leaves with one of:
+
+- A new prototype scaffolded — branch + dir + brief — ready for
+  task work.
+- A new task in the prototype's backlog (or active, or done).
+- A clear status read of the current prototype.
+- A graduated prototype, with tasks now staged in main `tasks/`
+  (uncommitted), ready for the user to review and merge per the
+  normal flow.
+- A shelved or dropped prototype with a clear paper trail.
+
+The deliverable is filesystem state plus the §-templated chat
+output. No commits unless the user committed; no merges to
+`main` ever (without the explicit user-confirm path of
+`graduate` → user-driven merge per Rule 2).

@@ -97,6 +97,24 @@ prepares, asks, executes only on explicit go.
   partway, **do not retry blindly**. Report what succeeded, what
   failed, the exact error, and ask before any cleanup or retry.
 
+## Output structure
+
+This skill produces several outputs across its flow. Each pins a
+catalogue entry per `output-rules.md`:
+
+- **Pre-flight check** (Step 1) → §2 Live status dashboard. Each
+  check is a row; ● = passed, ◐ = running, ✗ = failed.
+- **Version proposal** (Step 5) → markdown blockquote with the
+  reasoning. Conversational, not a structured deliverable.
+- **Deploy confirmation prompt** (Step 6) → markdown blockquote.
+  Conversational.
+- **Any failure** (Steps 1–9) → §25 Alert variants (ERROR). Stops
+  the flow.
+- **Closing report** (Step 10) → §5 Deployment report. The big
+  artifact the user takes away.
+
+Concrete templates are inlined in each step below.
+
 ## The flow
 
 ### Step 0 — Platform detection + delegation
@@ -121,8 +139,32 @@ Run in parallel:
 - `gh pr list --state open --base main` (any unmerged PRs that
   should have shipped?)
 
-Render a one-screen pre-flight summary. If any check fails, stop
-and ask before proceeding.
+Render the pre-flight summary as a §2 Live status dashboard:
+
+```
+┌─ pre-flight · vX.Y.Z release ──────────────────────────┐
+│                                                        │
+│  ● branch         main                                 │
+│  ● working tree   clean                                │
+│  ● upstream       no surprise commits                  │
+│  ● tests          142/142 green                        │
+│  ● build          clean (no warnings)                  │
+│  ● open PRs       0 pending merge to main              │
+│                                                        │
+│  ✓ all checks passed — ready to propose version        │
+└────────────────────────────────────────────────────────┘
+```
+
+Glyph semantics: ● = passed, ◐ = running, ✗ = failed. If any check
+fails, that row's glyph becomes ✗, the footer becomes a §25 ERROR
+alert, and the skill stops:
+
+```
+┌─ ✗  ERROR ───────────────────────────────────────────────┐
+│  pre-flight failed — <which check>                       │
+│  <one-line reason; full output above>                    │
+└──────────────────────────────────────────────────────────┘
+```
 
 ### Step 2 — Discover deploy command
 
@@ -223,38 +265,58 @@ uncommitted unless the user says otherwise.
 
 ### Step 10 — Closing report
 
-Render the deploy completion report (per task-rules.md
-"Closing report after deploy"):
+Render the deploy completion report per §5 Deployment report (per
+task-rules.md "Closing report after deploy"):
 
-```markdown
-# 🚀 Release vX.Y.Z — shipped
+````markdown
+# Release vX.Y.Z — shipped
 
-| | |
-|---|---|
-| **Tag** | [vX.Y.Z](https://github.com/<owner>/<repo>/releases/tag/vX.Y.Z) |
-| **Commit** | `<sha>` |
-| **Branch** | `main` |
-| **Deployed at** | <YYYY-MM-DD HH:MM UTC> |
-| **Live URL** | <from CLAUDE.md / DEPLOY.md> |
-| **Integration PR** | [#N](url) |
+```
+  ▲  DEPLOYMENT   ·   <env>   ·   vX.Y.Z
+
+
+  ┌─ release ──────────────────────────────────────────┐
+  │                                                    │
+  │   ●  build           clean       <duration>        │
+  │   ●  verification    <count>     <duration>        │
+  │   ●  deploy          succeeded   <duration>        │
+  │   ●  tag pushed      vX.Y.Z      ▲ <prev> → vX.Y.Z │
+  │   ●  audit appended  ✓                             │
+  │                                                    │
+  └────────────────────────────────────────────────────┘
+
+
+  tag           vX.Y.Z       <commit SHA>
+  branch        main
+  integration   PR #N
+  deployed by   <user>
+  started       <YYYY-MM-DD HH:MM UTC>
+  completed     <YYYY-MM-DD HH:MM UTC>  ·  <duration>
+
+
+  →  <live URL from CLAUDE.md / DEPLOY.md>
+  →  https://github.com/<owner>/<repo>/releases/tag/vX.Y.Z
+```
 
 **Tasks shipped**
 - TASK-NNN — <name>
 - TASK-NNN — <name>
 
-**Verification**
-- <test command>: <count> green · <time>
-- Build: clean / <warnings>
-- Deploy command: `<command>` — succeeded in <duration>
-- Tag pushed: ✅ `git push origin vX.Y.Z`
-
-**AUDIT.md**: entry appended (uncommitted — commit when ready)
-
 **Rollback** *(if needed)*
-- Hosting rollback: <command, e.g. `firebase hosting:rollback`>
+- Hosting rollback: `<command, e.g. firebase hosting:rollback>`
 - Note: rollback reverts the live build; the tag stays in place
   per task-rules.md "Rollback semantics".
-```
+````
+
+**Glyph semantics for the release box.** ● = step succeeded,
+◐ = step running, ✗ = step failed (would have stopped the skill
+before this report). ▲ marks the version bump. The two-column
+key/value rows below the box carry the metadata the prior table
+held — short values read better in this shape.
+
+If the deploy partially succeeded (e.g. deploy went through but
+tag push failed), use a §25 WARNING alert instead of §5 — the
+deployment box implies a clean release, which a partial state isn't.
 
 ## What you must NOT do
 
