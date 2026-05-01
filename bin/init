@@ -63,17 +63,18 @@ if [ -d "$KIT_DIR/kit/skills" ]; then
   done
 fi
 
-# kit/task-rules.md → .claude/task-rules.md
-if [ -f "$KIT_DIR/kit/task-rules.md" ]; then
-  cp "$KIT_DIR/kit/task-rules.md" "$TARGET/.claude/task-rules.md"
-  echo "    rules: task-rules.md"
-fi
-
-# kit/task-template.md → .claude/task-template.md
-if [ -f "$KIT_DIR/kit/task-template.md" ]; then
-  cp "$KIT_DIR/kit/task-template.md" "$TARGET/.claude/task-template.md"
-  echo "    rules: task-template.md"
-fi
+# kit/*.md → .claude/<filename>
+# Picks up task-rules.md, task-template.md, and every platform-prefix
+# file (ios-task-rules.md, web-task-rules.md, ios-conventions.md, and
+# any future <platform>-*.md the kit ships). Iterating means new kit
+# files get installed without an init-script edit — the kind of drift
+# fix that motivated this loop in the first place.
+for f in "$KIT_DIR/kit"/*.md; do
+  [ -f "$f" ] || continue
+  name="$(basename "$f")"
+  cp "$f" "$TARGET/.claude/$name"
+  echo "    kit:   $name"
+done
 
 # --- 2. Bootstrap files (skip if exists) ------------------------------
 
@@ -93,10 +94,18 @@ bootstrap_copy() {
   echo "    create:  $label"
 }
 
-bootstrap_copy "$KIT_DIR/bootstrap/CLAUDE.md.template"  "$TARGET/CLAUDE.md"           "CLAUDE.md"
-bootstrap_copy "$KIT_DIR/bootstrap/PHASES.md.template"  "$TARGET/tasks/PHASES.md"    "tasks/PHASES.md"
-bootstrap_copy "$KIT_DIR/bootstrap/ROADMAP.md.template" "$TARGET/tasks/ROADMAP.md"   "tasks/ROADMAP.md"
-bootstrap_copy "$KIT_DIR/bootstrap/AUDIT.md.template"   "$TARGET/tasks/AUDIT.md"     "tasks/AUDIT.md"
+bootstrap_copy "$KIT_DIR/bootstrap/CLAUDE.md.template"    "$TARGET/CLAUDE.md"            "CLAUDE.md"
+bootstrap_copy "$KIT_DIR/bootstrap/PHASES.md.template"    "$TARGET/tasks/PHASES.md"      "tasks/PHASES.md"
+bootstrap_copy "$KIT_DIR/bootstrap/ROADMAP.md.template"   "$TARGET/tasks/ROADMAP.md"     "tasks/ROADMAP.md"
+bootstrap_copy "$KIT_DIR/bootstrap/AUDIT.md.template"     "$TARGET/tasks/AUDIT.md"       "tasks/AUDIT.md"
+
+# Primitive layer (v0.5.0+) — small files that personalize the project's
+# Claude experience. Each is skip-if-exists, so re-runs preserve user edits.
+bootstrap_copy "$KIT_DIR/bootstrap/pact.md.template"      "$TARGET/.claude/pact.md"      ".claude/pact.md"
+bootstrap_copy "$KIT_DIR/bootstrap/welcome.md.template"   "$TARGET/.claude/welcome.md"   ".claude/welcome.md"
+bootstrap_copy "$KIT_DIR/bootstrap/wont-do.md.template"   "$TARGET/.claude/wont-do.md"   ".claude/wont-do.md"
+bootstrap_copy "$KIT_DIR/bootstrap/playlists.md.template" "$TARGET/.claude/playlists.md" ".claude/playlists.md"
+bootstrap_copy "$KIT_DIR/bootstrap/bookmarks.md.template" "$TARGET/.claude/bookmarks.md" ".claude/bookmarks.md"
 
 # --- 3. foundation.json (stamped with current kit SHA) ----------------
 
@@ -142,6 +151,20 @@ scaffold_dir "tasks/active"       "tasks/active"
 scaffold_dir "tasks/done"         "tasks/done"
 scaffold_dir "docs/decisions"     "docs/decisions"
 scaffold_dir "docs/postmortems"   "docs/postmortems"
+
+# Skill output destinations (v0.4.0+ skills write durable docs here).
+scaffold_dir "docs/notes"         "docs/notes"
+scaffold_dir "docs/audits"        "docs/audits"
+scaffold_dir "docs/handoff"       "docs/handoff"
+scaffold_dir "docs/regrets"       "docs/regrets"
+scaffold_dir "docs/retros"        "docs/retros"
+scaffold_dir "docs/blast-radius"  "docs/blast-radius"
+scaffold_dir "docs/scope"         "docs/scope"
+scaffold_dir "docs/exports"       "docs/exports"
+scaffold_dir "docs/proto"         "docs/proto"
+scaffold_dir "docs/mvp"           "docs/mvp"
+scaffold_dir ".claude/tradeoffs"  ".claude/tradeoffs"
+scaffold_dir ".claude/inbox"      ".claude/inbox"
 
 # --- 5. Next steps ----------------------------------------------------
 

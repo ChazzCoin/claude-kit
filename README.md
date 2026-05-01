@@ -29,6 +29,11 @@ claude-kit/
 │   ├── PHASES.md.template
 │   ├── ROADMAP.md.template
 │   ├── AUDIT.md.template
+│   ├── pact.md.template          # working-relationship contract
+│   ├── welcome.md.template       # session-start landing file
+│   ├── wont-do.md.template       # anti-feature list
+│   ├── playlists.md.template     # curated skill chains
+│   ├── bookmarks.md.template     # path:line treasure map
 │   └── foundation.json           # initial sync-tracking file
 ├── bin/
 │   └── init                      # bootstrap a target project
@@ -75,30 +80,80 @@ so every Claude session is aware of it.
 ## Skills shipped
 
 Run `/skills` inside any project after init to see the live list.
-Current set:
+Current set, grouped by intent:
 
-### Universal (apply to every project)
+### Universal — read & assess
+
+Read-only: answer "what is this?" / "what's the state?" / "what's the
+surface?" without touching the working tree.
 
 | Skill | Purpose |
 |---|---|
-| `/audit` | High-altitude two-part architectural read |
-| `/backlog` | Forward-looking task list, grouped by phase |
-| `/build` | Toolchain-detecting "does it build?" |
-| `/decision` | ADR drafter for real architectural calls |
+| `/audit` | Two-part architectural read; saves to `docs/audits/` |
+| `/review` | Senior line-by-line peer review of a given area |
+| `/wrangle` | Tame an unfamiliar codebase; writes durable map under `docs/wrangle/` and `.claude/context/project-map.md` |
+| `/status` | Quick "where do things stand right now" snapshot |
 | `/onboard` | Guided onboarding for new contributors |
-| `/plan` | Socratic roadmap-planning partner |
-| `/postmortem` | Incident postmortem drafter |
-| `/release` | End-to-end production release orchestrator (delegates to platform skills) |
-| `/review` | Senior line-by-line peer review |
-| `/roadmap` | Full per-phase view including completed work |
+| `/skills` | List every locally-defined skill |
+| `/backlog` | Forward-looking task list, grouped by phase |
+| `/roadmap` | Per-phase view including completed work |
+| `/build` | Toolchain-detecting "does it build?" |
 | `/run` | Toolchain-detecting launcher |
 | `/schema-check` | Cross-platform schema mirror reconciliation |
-| `/skills` | Lists all locally-defined skills |
-| `/status` | Read-only project snapshot |
-| `/stuck` | Socratic unblock-the-human partner |
-| `/sync` | Reconcile this project's `.claude/` with claude-kit |
+| `/scope-check` | Reality-check planned-change surface area vs estimate |
+| `/blast-radius` | Pre-mortem the surface a destructive change touches |
+| `/glossary` | Generate or sync `docs/glossary.md` from code + docs |
+| `/export-project` | Single beautifully-formatted project summary doc |
+
+### Universal — plan & scope
+
+| Skill | Purpose |
+|---|---|
+| `/plan` | Socratic roadmap-planning partner |
+| `/mvp` | Define minimum shippable+marketable for a new app/feature |
+| `/prototype` | Rapid R&D mode in a `proto/<slug>` branch |
+| `/spec-phase` | Expand every stub in a phase to a spec; propose order |
 | `/task` | Per-task action skill (file, move, expand) |
-| `/update-docs` | Reconcile docs against reality |
+| `/brainstorm` | Resume or start a tradeoff session at `.claude/tradeoffs/<topic>.md` |
+| `/stuck` | Socratic unblock-the-human partner |
+
+### Universal — capture & reflect
+
+Durable records — each writes to a typed location under `docs/`.
+
+| Skill | Purpose |
+|---|---|
+| `/decision` | ADR drafter for real architectural calls |
+| `/postmortem` | Incident postmortem drafter |
+| `/regret` | Architectural hindsight (distinct from postmortem) |
+| `/lessons` | Per-task introspection; writes to `docs/notes/` |
+| `/retro` | Longitudinal retrospective over a date window |
+| `/handoff` | Snapshot in-flight context; updates `.claude/welcome.md` |
+| `/codify` | Capture a session-emerged rule into CLAUDE.md or kit rules |
+
+### Universal — ship
+
+| Skill | Purpose |
+|---|---|
+| `/release` | End-to-end production release orchestrator (delegates to platform skills) |
+
+### Universal — coordination & hygiene
+
+| Skill | Purpose |
+|---|---|
+| `/sync` | Reconcile this project's `.claude/` with claude-kit |
+| `/update-docs` | Reconcile core docs against reality |
+| `/inbox` | Multi-dev messaging plus personal scratchpad |
+
+### Universal — kit-level meta
+
+Push improvements back upstream so every project benefits.
+
+| Skill | Purpose |
+|---|---|
+| `/new-skill` | Scaffold a new skill following the kit's canonical conventions |
+| `/contribute` | Package a local kit-file edit as a PR back to claude-kit |
+| `/rule-promote` | Find rules duplicated across projects; propose for kit graduation |
 
 ### Platform-specific
 
@@ -121,10 +176,16 @@ cd /path/to/your/new/project
 The init script:
 
 1. Creates `.claude/skills/`, `.claude/task-rules.md`, `.claude/task-template.md` from `kit/`
-2. Drops bootstrap templates (CLAUDE.md, PHASES.md, ROADMAP.md, AUDIT.md) into the project — **only if they don't already exist**
-3. Creates `tasks/{backlog,active,done}/` with `.gitkeep` files
-4. Writes `.claude/foundation.json` with the kit's commit SHA so `/sync` knows what to compare against
-5. Prints next steps (mostly: fill in the placeholders in CLAUDE.md)
+2. Drops project-content bootstrap templates into the project root — **only if they don't already exist**:
+   - `CLAUDE.md`, `tasks/PHASES.md`, `tasks/ROADMAP.md`, `tasks/AUDIT.md`
+3. Drops the primitive layer into `.claude/` — **only if they don't already exist**:
+   - `.claude/pact.md`, `.claude/welcome.md`, `.claude/wont-do.md`, `.claude/playlists.md`, `.claude/bookmarks.md`
+4. Scaffolds output destinations the kit's skills write to:
+   - `tasks/{backlog,active,done}/`
+   - `docs/{decisions,postmortems,notes,audits,handoff,regrets,retros,blast-radius,scope,exports,proto,mvp}/`
+   - `.claude/{tradeoffs,inbox}/`
+5. Writes `.claude/foundation.json` with the kit's commit SHA so `/sync` knows what to compare against
+6. Prints next steps (mostly: fill in the placeholders in CLAUDE.md and declare the project's `## Platform`)
 
 ### Existing project
 
@@ -159,10 +220,12 @@ prior kit knowledge required.
 | `.claude/task-template.md` | **OVERWRITE** with kit version | Same — back it up first if project-customized. |
 | `.claude/<platform>-*.md` (e.g. `ios-task-rules.md`) | added | New file — won't collide unless you happen to already have one with a matching name. |
 | `.claude/foundation.json` | created if missing | Skipped if exists — your existing pin stays. |
+| `.claude/pact.md`, `welcome.md`, `wont-do.md`, `playlists.md`, `bookmarks.md` | `skip-if-exists` | Primitive-layer files. Existing versions stay; user owns them after init. |
 | `tasks/{backlog,active,done}/` | scaffolded if missing/empty | Existing task files preserved. |
 | `tasks/PHASES.md`, `tasks/ROADMAP.md`, `tasks/AUDIT.md` | `skip-if-exists` | Existing project-specific versions stay. |
 | `CLAUDE.md` | `skip-if-exists` | Existing CLAUDE.md stays. **You'll edit it after init** to add the new `## Platform` section and migrate any project-specific content from the old task-rules.md. |
-| `docs/decisions/`, `docs/postmortems/` | scaffolded if missing | Empty `.gitkeep` only. |
+| `docs/{decisions,postmortems,notes,audits,handoff,regrets,retros,blast-radius,scope,exports,proto,mvp}/` | scaffolded if missing | Empty `.gitkeep` only. Skill output destinations. |
+| `.claude/{tradeoffs,inbox}/` | scaffolded if missing | Empty `.gitkeep` only. `/brainstorm` and `/inbox` write here. |
 
 ### Save your work BEFORE running init
 
