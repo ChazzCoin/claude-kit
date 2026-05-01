@@ -20,7 +20,7 @@ human-readable rollback).
 
 ---
 
-## v0.6.0 — 2026-05-01
+## v0.7.0 — 2026-05-01
 
 A foundational release. Five interlocking pieces:
 
