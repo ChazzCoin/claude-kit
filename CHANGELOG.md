@@ -14,6 +14,126 @@ human-readable rollback).
 
 ---
 
+## v0.6.0 — 2026-05-01
+
+Adds **modes** — a new tier of the kit alongside skills and the
+primitive layer. A mode is a *drive*, not a permission filter:
+prose written in a voice that primes Claude's appetite for the
+work at hand. Activating `task` mode makes Claude want to clear
+the backlog (pull work in batches, drive the user, push back on
+sidetracks); activating `cleanup` mode makes Claude want to
+improve the codebase in place (probe for smells, narrow refactors,
+no new features). `normal` is the absence of any mode — default
+Claude.
+
+Modes persist across sessions. `CLAUDE.md` `@`-imports
+`.claude/mode.md`, so the active drive prose is in context on
+every session start until `/mode normal` ends it.
+
+### Added
+
+#### New tier: modes
+- **`kit/modes/`** — directory mirror, synced via `/sync` like
+  `kit/skills/`. Each `*.md` is a mode definition. Three files
+  shipped:
+  - `kit/modes/README.md` — concept doc + voice rules for new modes.
+  - `kit/modes/task.md` — drive prose for task mode (clear backlog,
+    pull batches, count tasks closed).
+  - `kit/modes/cleanup.md` — drive prose for cleanup mode (improve
+    in place, push back on new features, time-only counter).
+
+#### New skill
+- **`/mode`** — activate, switch, end, or report on the current
+  work mode. Three operations:
+  - `/mode` (no args) — render current state + cross-activation
+    stats from `.claude/mode-stats.md`.
+  - `/mode <name>` — activate or switch. Validates against
+    `.claude/modes/<name>.md`, finalizes any prior mode (writes
+    deltas to stats), writes `.claude/mode.md` with activation
+    metadata + `@`-import of the mode definition.
+  - `/mode normal` — end the active mode. Removes
+    `.claude/mode.md`; the absence of that file is the "no mode"
+    signal.
+
+#### Persistent state files (project-owned)
+- **`.claude/mode.md`** — currently-active mode. YAML frontmatter
+  (mode name, started timestamp, count_unit, units_at_start) +
+  `@`-import of the chosen mode definition. Doesn't exist when
+  no mode is active.
+- **`.claude/mode-stats.md`** — append-only activation log + a
+  totals table. Tracks time-in-mode, activation count, and
+  mode-specific units (e.g., tasks closed for task mode).
+  Never written by `/sync`; lifetime project state.
+
+### Counting
+
+Each mode declares what it counts:
+
+| Mode | Unit | Detection |
+|---|---|---|
+| `task` | tasks closed | filesystem count of `*.md` files in `tasks/done/`, baseline-stamped at activation, delta-computed at finalize |
+| `cleanup` | none | time-in-mode + activation count only |
+
+Cleanup-mode counting is intentionally fuzzy — codebase-feels-nicer
+resists per-unit scoring, and forcing it cheapens the work.
+Qualitative wins go in `/lessons` if desired.
+
+### Changed
+
+- **`bootstrap/CLAUDE.md.template`** — added `@.claude/mode.md`
+  to the auto-loaded primitives section. The `@`-import is a
+  no-op when no mode is active (file absent), so projects that
+  never use modes pay nothing.
+- **`bin/init`** — new mirror loop for `kit/modes/*.md` →
+  `.claude/modes/*.md`. Pattern matches the existing
+  `kit/skills/` mirror.
+- **`MANIFEST.json`** version `0.5.0` → `0.6.0`. New
+  `kit.files` entry for `kit/modes/` (`directory-mirror`).
+- **`README.md`** — adds the modes tree under `kit/`, a new
+  "Universal — drive" section in the skills catalog with
+  `/mode`, and entries for `.claude/modes/`, `.claude/mode.md`,
+  `.claude/mode-stats.md` in the existing-project install table.
+
+### Did not change
+
+- `task-rules.md` and platform-prefix files. Modes layer over
+  rules; they don't replace them. Universal rules (verification
+  gate, gated files, never auto-commit) always win, in any mode.
+- Other skills. None had to change. Modes are an additive
+  context layer; existing skills behave the same with or
+  without an active mode.
+- `bootstrap/` templates other than `CLAUDE.md.template`.
+- The `/skills` skill — picks up `/mode` automatically since
+  it ships under `kit/skills/`.
+
+### Counts
+
+| | v0.5.0 | v0.6.0 |
+|---|---|---|
+| Universal skills | 36 | 37 |
+| Platform skills | 1 | 1 |
+| Bootstrap templates | 10 | 10 |
+| Modes shipped | — | 2 (task, cleanup) |
+| Scaffold dirs (declared in MANIFEST) | 17 | 17 |
+
+### Voice example
+
+The drive prose is written to prime appetite, not list rules.
+Excerpt from `kit/modes/task.md`:
+
+> You're in task mode. Your job is to clear the backlog. Idle
+> is wrong. The backlog count not going down is wrong. A
+> session ending without a closed task is wrong.
+>
+> What you want: pull work in batches. Surface 3-5 tasks the
+> user can knock out, not one at a time. Show the count up
+> front: "37 in backlog. 3 active. Let's go."
+
+Quality is universal and never relaxed by a mode — the kit's
+`task-rules.md` always wins.
+
+---
+
 ## v0.5.0 — 2026-05-01
 
 Bundles four post-v0.4.0 merges that shipped without a version bump
