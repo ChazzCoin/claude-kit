@@ -16,6 +16,12 @@ human-readable rollback).
 
 ## Unreleased
 
+(no entries yet)
+
+---
+
+## v0.9.1 — 2026-05-02
+
 ### Catalogue applies to conversational asks too
 
 The structured-outputs catalogue's scope was implicitly
