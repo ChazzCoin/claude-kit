@@ -76,6 +76,20 @@ for f in "$KIT_DIR/kit"/*.md; do
   echo "    kit:   $name"
 done
 
+# kit/modes/*.md → .claude/modes/*.md
+# Mode definitions (drive prose). Activated via /mode <name>; the
+# skill copies the activation record to .claude/mode.md (project-owned,
+# never synced). Each *.md here is one mode.
+if [ -d "$KIT_DIR/kit/modes" ]; then
+  mkdir -p "$TARGET/.claude/modes"
+  for f in "$KIT_DIR/kit/modes"/*.md; do
+    [ -f "$f" ] || continue
+    name="$(basename "$f")"
+    cp "$f" "$TARGET/.claude/modes/$name"
+    echo "    mode:  $name"
+  done
+fi
+
 # --- 2. Bootstrap files (skip if exists) ------------------------------
 
 echo
@@ -163,6 +177,7 @@ scaffold_dir "docs/scope"         "docs/scope"
 scaffold_dir "docs/exports"       "docs/exports"
 scaffold_dir "docs/proto"         "docs/proto"
 scaffold_dir "docs/mvp"           "docs/mvp"
+scaffold_dir "docs/refinement"    "docs/refinement"
 scaffold_dir ".claude/tradeoffs"  ".claude/tradeoffs"
 scaffold_dir ".claude/inbox"      ".claude/inbox"
 

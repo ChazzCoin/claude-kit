@@ -17,6 +17,7 @@ file. Delete a line if the file isn't used in this project.
 
 @.claude/welcome.md
 @.claude/pact.md
+@.claude/mode.md
 @.claude/bookmarks.md
 @.claude/wont-do.md
 @docs/notes/INDEX.md
@@ -26,6 +27,11 @@ file. Delete a line if the file isn't used in this project.
   in flight. Auto-updated by `/handoff`.
 - **`pact.md`** — your working-relationship preferences with Claude.
   Portable across repos.
+- **`mode.md`** — currently-active work mode (a *drive*, not a
+  filter). Only present when a mode is active. When loaded, its
+  drive prose shapes Claude's appetite for the session. Switch with
+  `/mode <name>`; clear with `/mode normal`. See the kit's
+  `kit/modes/README.md` for the concept.
 - **`bookmarks.md`** — curated `path:line` pointers for fast
   orientation.
 - **`wont-do.md`** — anti-feature list. Stops relitigating closed
