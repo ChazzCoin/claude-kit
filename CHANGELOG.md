@@ -16,14 +16,21 @@ human-readable rollback).
 
 ## Unreleased
 
-### Modes — integration in progress (chore/integrate-modes branch)
+(no entries yet)
 
-The `feat/modes` branch (originally targeted for a parked v0.6.0
-slot, never merged) integrated into the kit on
-`chore/integrate-modes`. Adds a new tier alongside skills and
-primitives: **modes** — prose drives that prime Claude's appetite
-for the work at hand, distinct from skill-routing or
-permission-gating.
+---
+
+## v0.9.0 — 2026-05-02
+
+### Modes — integrated and shipping
+
+The `feat/modes` branch (originally drafted against a parked
+v0.6.0 slot that was reserved during v0.7.0 release but never
+claimed) integrated into the kit, plus a new third mode
+(`project-manager`) added on top. Adds a new tier alongside
+skills and primitives: **modes** — prose drives that prime
+Claude's appetite for the work at hand, distinct from
+skill-routing or permission-gating.
 
 #### Added — modes tier
 
