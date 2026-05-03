@@ -16,7 +16,40 @@ human-readable rollback).
 
 ## Unreleased
 
-(no entries yet)
+### Catalogue applies to conversational asks too
+
+The structured-outputs catalogue's scope was implicitly
+"skill deliverables only" — `task-rules.md` invokes a skill,
+the skill renders catalogue. Free-form chat asks like
+*"what's the status?"* or *"what's deployed?"* fell back to
+prose because they didn't go through `/status` or `/release`.
+
+That carve was wrong. The right line is **structured ask →
+structured response, open-ended dialogue → prose**, regardless
+of whether a skill is invoked. A direct chat ask of the same
+type gets the same catalogue template the skill would produce.
+
+#### Changed
+
+- **`kit/output-rules.md`** — restructured the "What this file
+  governs" / "What this file does NOT govern" sections:
+  - **What governs:** output TYPES (status, deployment, audit,
+    backlog, decision, alert, etc.) — applies whether the
+    output comes from a skill or from a direct chat ask.
+  - **New section: "Conversational (in-chat) use is included"**
+    with a 10-row table mapping common chat asks to catalogue
+    entries (e.g. *"what's the status?"* → §2 inline; *"any
+    issues?"* → §6 or §26; *"how does X compare to Y?"* → §24).
+  - **What does NOT govern:** narrowed to genuinely
+    open-ended dialogue (mid-task narration, free-form Q&A
+    about HOW something works, brainstorming, multi-turn
+    clarification, one-line affirmations).
+  - **Closing rule:** "When uncertain, default to prose. A
+    wrong catalogue use is heavier than a missed one."
+
+No skill changes — wired skills (/status, /release, /audit)
+still pin their specific § entries. The shift only affects
+free-form chat responses where no skill was invoked.
 
 ---
 

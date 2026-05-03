@@ -21,8 +21,14 @@ apply it.
 
 ## What this file governs
 
-Outputs that are **structured results** — discrete artifacts the
-user reads as a unit and acts on. These get a catalogue template:
+Outputs whose **type** matches a catalogue entry — whether
+they're skill-produced deliverables OR inline answers in chat.
+
+The carve: **structured ask → structured response. Open-ended
+dialogue → prose.** The skill-vs-chat boundary isn't the line;
+the type-of-output is.
+
+### Output types that get a catalogue template
 
 - Project status / briefing / dashboard
 - Deployment or release report
@@ -40,21 +46,56 @@ user reads as a unit and acts on. These get a catalogue template:
 - Help text or command reference
 - Selection prompt (pick from a list)
 
+### Conversational (in-chat) use is included
+
+The catalogue isn't only for skill deliverables. **Any
+structured ask gets a structured response**, whether it comes
+through `/status` or just through a chat message. If the user's
+question maps to a row in the selection table below, render the
+catalogue template inline — you don't need to invoke a skill
+first.
+
+| User asks (in chat) | Render |
+|---|---|
+| *"What's the status?"* | §2 Live dashboard inline |
+| *"What's deployed?"* / *"What's in prod?"* | §5 Deployment report inline |
+| *"Any issues?"* / *"Anything failing?"* | §6 Severity audit (or §26 Empty state if none) |
+| *"How does X compare to Y?"* | §24 Comparison matrix inline |
+| *"Walk me through what happened."* | §23 Activity timeline inline |
+| *"Show me the open PRs"* | markdown table (or §17 Branch overview if many branches) |
+| *"Recent commits?"* | §16 Git log inline |
+| *"What's the backlog look like?"* | §4 Sprint task board (or §3 Roadmap timeline for phase view) |
+| *"Pick from these options"* | §34 Selection prompt |
+| *"Headline numbers?"* | §28 Stats card grid (≤4 KPIs) |
+
+The presence of a `/skill` invocation isn't required. Direct
+chat asks of these types get the same treatment as the skill
+would produce — denser, more designed, faster to scan than
+plain prose.
+
 ## What this file does NOT govern
 
-Conversational and narrative output stays as plain prose or normal
-markdown:
+These stay as plain prose or normal markdown:
 
-- Mid-task progress narration ("reading X next, then Y")
-- Q&A and explanations
-- Brainstorm sessions, open exploration, planning conversations
-- Inline status updates during a task
-- Git commit messages, PR titles/bodies (covered by `task-rules.md`)
-- Multi-turn dialogue, follow-up questions
+- **Mid-task progress narration** ("reading X next, then Y").
+- **Free-form Q&A about HOW something works** ("explain how the
+  catalogue is composed"; "why do we use SwiftData here?").
+  Explanations are dialogue.
+- **Brainstorm sessions, open exploration, planning
+  conversations** — generative, exploratory, no clear deliverable.
+- **Multi-turn dialogue, clarifying questions, back-and-forth**
+  — the meta-shape of conversation itself.
+- **Git commit messages, PR titles/bodies** — those have their
+  own conventions (covered by `task-rules.md`).
+- **One-line affirmations or confirmations** ("yes, done",
+  "got it", "stopping here") — short prose is the right tool.
 
-The catalogue is for **deliverables**, not **commentary**. If the
-output is a thing the user will keep, screenshot, or paste — use
-the catalogue. If it's part of the back-and-forth — don't.
+The line: **does the user's ask have an output TYPE in the
+table above?** If yes → catalogue. If no (it's open-ended,
+exploratory, conversational, narrative) → prose.
+
+When uncertain, default to prose. A wrong catalogue use is
+heavier than a missed one.
 
 ---
 
