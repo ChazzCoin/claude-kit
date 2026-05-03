@@ -30,6 +30,12 @@
         "note": "All subdirectories under kit/skills/ are individual skills. Each is mirrored to .claude/skills/. Skill names follow the platform-prefix convention (e.g. 'ios-release/' is iOS-specific)."
       },
       {
+        "from": "kit/modes/",
+        "to": ".claude/modes/",
+        "policy": "directory-mirror",
+        "note": "Mode definitions (drive prose). Each *.md is a mode. Activated by /mode <name>, which writes .claude/mode.md (the active-mode record, project-owned, never synced)."
+      },
+      {
         "from": "kit/task-rules.md",
         "to": ".claude/task-rules.md",
         "policy": "file-replace",

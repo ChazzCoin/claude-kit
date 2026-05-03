@@ -19,6 +19,10 @@ claude-kit/
 │   │   ├── audit/                #   universal
 │   │   ├── …                     #   (more universal)
 │   │   └── ios-release/          #   iOS-specific (prefix marks scope)
+│   ├── modes/                    # drives — voice that primes appetite
+│   │   ├── README.md
+│   │   ├── task.md
+│   │   └── cleanup.md
 │   ├── task-rules.md             # universal execution rules
 │   ├── ios-task-rules.md         # iOS platform extensions
 │   ├── web-task-rules.md         # web platform extensions (placeholder)
@@ -155,6 +159,16 @@ Push improvements back upstream so every project benefits.
 | `/contribute` | Package a local kit-file edit as a PR back to claude-kit |
 | `/rule-promote` | Find rules duplicated across projects; propose for kit graduation |
 
+### Universal — drive
+
+Modes shape Claude's *appetite* for the work — what to want, what
+feels wrong when off-track. Drives, not filters. See
+[kit/modes/README.md](kit/modes/README.md) for the concept.
+
+| Skill | Purpose |
+|---|---|
+| `/mode` | Switch, end, or report the current work mode (`task` / `cleanup` / `normal`). Stats persist across sessions in `.claude/mode-stats.md`. |
+
 ### Platform-specific
 
 | Skill | Scope | Purpose |
@@ -175,7 +189,7 @@ cd /path/to/your/new/project
 
 The init script:
 
-1. Creates `.claude/skills/`, `.claude/task-rules.md`, `.claude/task-template.md` from `kit/`
+1. Creates `.claude/skills/`, `.claude/modes/`, `.claude/task-rules.md`, `.claude/task-template.md`, and the platform-prefix kit files from `kit/`
 2. Drops project-content bootstrap templates into the project root — **only if they don't already exist**:
    - `CLAUDE.md`, `tasks/PHASES.md`, `tasks/ROADMAP.md`, `tasks/AUDIT.md`
 3. Drops the primitive layer into `.claude/` — **only if they don't already exist**:
@@ -216,6 +230,9 @@ prior kit knowledge required.
 | File / dir | Policy | What you should know |
 |---|---|---|
 | `.claude/skills/` | additive — overlays kit skills, doesn't delete project-only ones | If a kit skill name collides with a project-only skill, the kit wins. **Rename project-only skills with a `local-` prefix BEFORE init** if they share a name with a kit skill. |
+| `.claude/modes/` | additive — overlays kit modes | Mode definitions (drive prose) sync from `kit/modes/`. Local edits to `.claude/modes/<name>.md` are preserved across `/sync` if listed as overrides in `foundation.json`. |
+| `.claude/mode.md` | **never touched** by init or sync | Project-owned activation record (created by `/mode <name>`, removed by `/mode normal`). |
+| `.claude/mode-stats.md` | **never touched** by init or sync | Project-owned cross-activation accumulator. |
 | `.claude/task-rules.md` | **OVERWRITE** with kit version | If your project has elaborated this file with project-specific content (gated files, verification commands, baselines, project trust modes), **back it up first** — see "Save your work" below. |
 | `.claude/task-template.md` | **OVERWRITE** with kit version | Same — back it up first if project-customized. |
 | `.claude/<platform>-*.md` (e.g. `ios-task-rules.md`) | added | New file — won't collide unless you happen to already have one with a matching name. |

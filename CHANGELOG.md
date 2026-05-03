@@ -16,7 +16,65 @@ human-readable rollback).
 
 ## Unreleased
 
-(no entries yet)
+### Modes — integration in progress (chore/integrate-modes branch)
+
+The `feat/modes` branch (originally targeted for a parked v0.6.0
+slot, never merged) integrated into the kit on
+`chore/integrate-modes`. Adds a new tier alongside skills and
+primitives: **modes** — prose drives that prime Claude's appetite
+for the work at hand, distinct from skill-routing or
+permission-gating.
+
+#### Added — modes tier
+
+- **`kit/modes/`** — directory mirror, synced via `/sync` like
+  `kit/skills/`. Each `*.md` is a mode definition.
+  - `kit/modes/README.md` — concept doc + voice rules.
+  - `kit/modes/task.md` — drive prose for task mode (clear
+    backlog, pull batches, count tasks closed).
+  - `kit/modes/cleanup.md` — drive prose for cleanup mode
+    (improve in place, push back on new features, time-only
+    counter).
+- **`kit/skills/mode/SKILL.md`** — `/mode` skill. Activate,
+  switch, end, or report current mode + cross-activation stats.
+- **`MANIFEST.json`** — new `kit.files` entry: `kit/modes/` →
+  `.claude/modes/` (directory-mirror).
+- **`bootstrap/CLAUDE.md.template`** — adds `@.claude/mode.md`
+  to the auto-loaded primitives section. The `@`-import is a
+  no-op when no mode is active (file absent), so projects that
+  never use modes pay nothing.
+- **`bin/init`** — new mirror loop for `kit/modes/*.md`.
+- **`README.md`** — adds modes tree, a "Universal — drive"
+  section in the skills catalog with `/mode`, and entries for
+  `.claude/modes/`, `.claude/mode.md`, `.claude/mode-stats.md`
+  in the existing-project install table.
+
+#### How modes work
+
+- Mode = a *drive* (priming Claude's appetite), not a permission
+  filter or skill router. Universal rules from `task-rules.md`
+  (verification gate, gated files, never auto-commit) always win
+  inside any mode.
+- Activation writes `.claude/mode.md` (small frontmatter +
+  `@`-import of the chosen mode definition). `CLAUDE.md`
+  `@`-imports `.claude/mode.md`, so the active drive prose loads
+  on every session start.
+- Switching between modes finalizes the prior mode's deltas to
+  `.claude/mode-stats.md` before activating the new one.
+- `/mode normal` is the off-switch — removes `.claude/mode.md`;
+  the file's absence is the "no mode" signal.
+
+#### Integration notes
+
+- `feat/modes`'s original v0.6.0 CHANGELOG entry was dropped —
+  that version slot was reserved during v0.7.0 release and never
+  claimed. Modes ship under whatever version this branch lands
+  as (likely v0.9.0).
+- Smart-merge: 7 of 9 files merged cleanly; CHANGELOG and
+  MANIFEST resolved by hand (kept v0.8.0 baseline + grafted in
+  modes additions).
+- All 4 mode files (`kit/modes/*.md`, `kit/skills/mode/SKILL.md`)
+  integrated verbatim from `feat/modes`.
 
 ---
 
