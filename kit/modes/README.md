@@ -38,6 +38,11 @@ Code. That's the **normal** state.
 - **`cleanup`** — make the codebase nicer to live in. Improve
   in place, narrow scope, no new features. Counts time and
   activations (cleanup work resists per-unit scoring).
+- **`project-manager`** — refine the backlog into a roadmap
+  that's ready to ship. Walk phase by phase, stub by stub;
+  push every stub through `/task` Op 3's full recon flow;
+  surface phase-level shape questions; log to
+  `docs/refinement/<date>.md`. Counts stubs refined.
 - **`normal`** — the absence of a mode. Just Claude Code.
 
 ---
@@ -45,10 +50,11 @@ Code. That's the **normal** state.
 ## Switching
 
 ```
-/mode              # report current mode + stats
-/mode task         # activate task mode
-/mode cleanup      # activate cleanup mode
-/mode normal       # end the active mode (back to default Claude)
+/mode                   # report current mode + stats
+/mode task              # activate task mode
+/mode cleanup           # activate cleanup mode
+/mode project-manager   # activate project-manager (refinement) mode
+/mode normal            # end the active mode (back to default Claude)
 ```
 
 Switching from one mode to another finalizes the previous mode

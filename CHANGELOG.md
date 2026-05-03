@@ -35,15 +35,26 @@ permission-gating.
   - `kit/modes/cleanup.md` — drive prose for cleanup mode
     (improve in place, push back on new features, time-only
     counter).
+  - `kit/modes/project-manager.md` (NEW on this branch) — drive
+    prose for project-manager mode. Walk the backlog phase by
+    phase, push every stub through `/task` Op 3's full recon
+    flow, surface phase-level shape questions, log the session
+    to `docs/refinement/<date>.md`. Counts stubs refined
+    (delta of files containing `STATUS: STUB`).
 - **`kit/skills/mode/SKILL.md`** — `/mode` skill. Activate,
   switch, end, or report current mode + cross-activation stats.
+  Extended on this branch to detect the new
+  `stubs_remaining_count` unit type for project-manager mode.
 - **`MANIFEST.json`** — new `kit.files` entry: `kit/modes/` →
   `.claude/modes/` (directory-mirror).
 - **`bootstrap/CLAUDE.md.template`** — adds `@.claude/mode.md`
   to the auto-loaded primitives section. The `@`-import is a
   no-op when no mode is active (file absent), so projects that
   never use modes pay nothing.
-- **`bin/init`** — new mirror loop for `kit/modes/*.md`.
+- **`bin/init`** — new mirror loop for `kit/modes/*.md`. Plus
+  scaffold for `docs/refinement/` (project-manager mode's
+  durable session log directory).
+- **`MANIFEST.json`** scaffold list — adds `docs/refinement/`.
 - **`README.md`** — adds modes tree, a "Universal — drive"
   section in the skills catalog with `/mode`, and entries for
   `.claude/modes/`, `.claude/mode.md`, `.claude/mode-stats.md`

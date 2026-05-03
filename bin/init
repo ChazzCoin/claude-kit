@@ -177,6 +177,7 @@ scaffold_dir "docs/scope"         "docs/scope"
 scaffold_dir "docs/exports"       "docs/exports"
 scaffold_dir "docs/proto"         "docs/proto"
 scaffold_dir "docs/mvp"           "docs/mvp"
+scaffold_dir "docs/refinement"    "docs/refinement"
 scaffold_dir ".claude/tradeoffs"  ".claude/tradeoffs"
 scaffold_dir ".claude/inbox"      ".claude/inbox"
 

@@ -99,6 +99,7 @@ You're in normal Claude. To activate a drive:
 
 - `/mode task` — clear the backlog
 - `/mode cleanup` — improve the codebase in place
+- `/mode project-manager` — refine the backlog phase by phase
 <list every `.claude/modes/*.md` file by name>
 
 ## 📈 Totals across activations
@@ -125,6 +126,11 @@ activations.">
      - **Units:** depends on the prior mode's `count_unit` field
        in `.claude/mode.md`. For `tasks_done_count`:
        `(current count of files in tasks/done/) − units_at_start`.
+       For `stubs_remaining_count`: `units_at_start − (current
+       count of *.md files under tasks/backlog/ containing the
+       string "STATUS: STUB")`. (Direction is inverted because
+       refining a stub *removes* the STATUS: STUB header, so the
+       remaining-stubs count drops; the delta = stubs refined.)
        For `none`: skip.
    - Append a row to `.claude/mode-stats.md`'s **Activation
      log**.
@@ -183,7 +189,9 @@ To exit: `/mode normal`. To switch: `/mode <other>`.
 - Time in mode: <duration>
 - <Units-specific summary, e.g. "Tasks closed: 4. Backlog:
   37 → 33." for task; "Time-in-mode logged. Activations:
-  N total." for cleanup.>
+  N total." for cleanup; "Stubs refined: 5 (8 → 3
+  remaining). Session log: docs/refinement/<date>.md." for
+  project-manager.>
 
 You're back in normal Claude. Stats are in
 `.claude/mode-stats.md`. Run `/mode` anytime to see totals.
@@ -198,6 +206,7 @@ hardcodes the detection logic per mode:
 |---|---|---|
 | `task` | `tasks_done_count` | Number of `*.md` files in `tasks/done/` (excluding `.gitkeep`). Activation records the baseline; finalization computes the delta. |
 | `cleanup` | `none` | Time-in-mode only; no per-unit counting. |
+| `project-manager` | `stubs_remaining_count` | Number of `*.md` files under `tasks/backlog/` containing the string `STATUS: STUB`. Activation records the baseline; finalization computes the inverse delta (`baseline - current` = stubs refined this session). Refining a stub removes the `STATUS: STUB` header, so the remaining count drops. |
 | `normal` | n/a | Not a mode — represented by `.claude/mode.md` absence. |
 | New modes | varies | Author chooses. If the unit isn't in this table, the skill must be extended to detect it. |
 
