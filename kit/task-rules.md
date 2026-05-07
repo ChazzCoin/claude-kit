@@ -29,6 +29,13 @@ starting work.
 > a gate — every project pulls all files; each work session reads the
 > ones that apply.
 
+> **Craft rules.** Universal code-quality discipline — build it right
+> the first time, no copy-paste, modular by default, no magic strings,
+> minimal comments, no dead code, no premature abstraction. Read
+> `craft-rules.md` before writing code. Applies to every project,
+> every language. Sits between this file (process) and the platform
+> extensions (stack).
+
 > **Output styles.** Structured outputs — status reports, deployment
 > reports, audits, backlogs, test results, decisions, and similar
 > deliverables — render via the kit's output catalogue. The

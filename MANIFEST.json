@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-kit/manifest.schema.json",
   "name": "claude-kit",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Portable Claude Code foundation — skills, rules, and templates that work across any repo, any language, any platform.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-kit",
@@ -40,6 +40,12 @@
         "to": ".claude/task-rules.md",
         "policy": "file-replace",
         "note": "Universal execution rules. Project-specific commands come from CLAUDE.md."
+      },
+      {
+        "from": "kit/craft-rules.md",
+        "to": ".claude/craft-rules.md",
+        "policy": "file-replace",
+        "note": "Universal code-quality discipline — build it right the first time, follow the pattern, modular by default, naming, type strictness (declare types in any language; JSDoc on JS/JSX), comments, error handling. Read alongside task-rules.md. Added in v0.10.0."
       },
       {
         "from": "kit/git-flow-rules.md",
@@ -93,7 +99,13 @@
         "from": "kit/ios-conventions.md",
         "to": ".claude/ios-conventions.md",
         "policy": "file-replace",
-        "note": "iOS architectural conventions and gotchas reference."
+        "note": "iOS architectural conventions and gotchas reference. Includes Default stack, Navigation (NavigationStack with typed path), and Architecture — ViewModels sections (added in v0.10.0)."
+      },
+      {
+        "from": "kit/web-conventions.md",
+        "to": ".claude/web-conventions.md",
+        "policy": "file-replace",
+        "note": "Web platform conventions reference. Default stack is JSX + JSDoc + Vite + React 18 + Tailwind + Firebase + Playwright. Includes architecture (separation of concerns), routing (React Router from day one), Firebase patterns, hosting cache headers, common gotchas. Added in v0.10.0."
       },
       {
         "from": "kit/task-template.md",
