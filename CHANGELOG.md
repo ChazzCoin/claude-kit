@@ -20,6 +20,141 @@ human-readable rollback).
 
 ---
 
+## v0.10.0 — 2026-05-07
+
+### Craft rules + web stack defaults
+
+Two structural additions and one expansion of the platform-conventions
+pattern.
+
+#### Added
+
+- **`kit/craft-rules.md`** — universal code-quality discipline. Sits
+  alongside `git-flow-rules.md`, `release-rules.md`, `output-rules.md`
+  in the rule-decomposition pattern. Covers: build it right the first
+  time, modular by default, reusable / dynamic / composable, naming,
+  comments, error handling, dead code, premature abstraction. Applies
+  to every project, every language. Referenced via blockquote pointer
+  from `task-rules.md`.
+- **`kit/web-conventions.md`** — platform reference for web projects,
+  mirroring `kit/ios-conventions.md`. Includes a **`## Default stack`**
+  section at the top stating the kit's opinionated default for new
+  browser SPAs:
+  - Vite 6+ (ESM) · React 18 (JSX) · Tailwind 3+ + PostCSS · lucide-react
+  - Firebase (Auth + DB + Hosting) with cache-discipline headers
+  - Playwright (chromium-only, headless gate, headed `:watch`)
+  - No state-management library by default
+  - **Secondary default for paired Node backends:** Node ≥20 ESM,
+    strict TypeScript, `tsx watch` / `tsc`, Express 4 + better-sqlite3
+    + dotenv (the `claude-messages` / Galt shape).
+
+#### Changed
+
+- **`kit/ios-conventions.md`** — added a `## Default stack` section
+  near the top so the convention is consistent across platforms
+  (SwiftUI · Swift 5.9+ · SPM · Realm · Firebase · XCTest+XCUITest ·
+  TestFlight via `/ios-release`).
+- **`kit/web-task-rules.md`** — replaced the `STATUS: PLACEHOLDER`
+  contents with the real defaults pulled from the chosen web stack:
+  concrete verification gate (`npm run build` + `npm run test:e2e`),
+  protected files list (build/test/hosting config, security rules,
+  `paths.js`), Firebase schema discipline rules, gotchas tied to the
+  verification gate.
+- **`kit/task-rules.md`** — added a blockquote pointer to
+  `craft-rules.md` in the existing rule-pointer list.
+
+#### Architecture and navigation discipline
+
+- **`kit/craft-rules.md`** — two new sections:
+  - **Architecture from day one.** Separate business logic from UI
+    views. Decide the architectural shape before file three. Cleanup-
+    as-you-grow doesn't work — by the time the seams hurt, they're
+    load-bearing.
+  - **Navigation discipline.** Set up real navigation from the first
+    commit. View-state app routers (`useState("landing")` /
+    `setView("dashboard")`) are the explicit anti-pattern. Web
+    default: React Router. iOS default: `NavigationStack` with typed
+    path.
+- **`kit/web-conventions.md`** — two new sections:
+  - **Architecture — separation of concerns.** Layer model table:
+    `firebase/` + `models/` + `lib/` are leaves; `hooks/` own
+    business logic; `components/ui/` are render primitives;
+    `components/<area>/` are feature views; `pages/` compose. Rules:
+    components don't call Firebase directly, hooks don't render,
+    pages compose-don't-compute.
+  - **Routing.** React Router v6+ from the first commit. Mount
+    `BrowserRouter` at `main.jsx`; define routes in `App.jsx` or
+    `src/routes.jsx`. `<Navigate>` redirects for auth gating.
+    Deep-link aware.
+- **`kit/ios-conventions.md`** — two new sections:
+  - **Navigation.** `NavigationStack` with typed `NavigationPath`
+    (or enum-driven path). One navigator per tab / per main flow.
+    Sheet-vs-push semantics. State restoration via `@SceneStorage`.
+  - **Architecture — ViewModels (separation of concerns).** iOS 17
+    `@Observable` and pre-17 `ObservableObject` patterns. Views
+    render + dispatch intents; ViewModels own state, derived data,
+    and data-access calls. Stores / Repositories injected into
+    ViewModels.
+
+#### Naming + type discipline
+
+- **`kit/craft-rules.md`** — three sections changed:
+  - **Naming.** New casing table — kit-wide and overrides language
+    idioms where they conflict. Classes / types / structs / enums /
+    protocols → **PascalCase**. Variables / properties / fields →
+    **camelCase**. Functions / methods → **camelCase**. React hooks
+    → camelCase prefixed `use…`. Constants → UPPER_SNAKE_CASE.
+    Python in this kit uses camelCase, not PEP 8 snake_case —
+    consistency across the kit beats deference to per-language
+    style guides.
+  - **Type strictness (new section).** The kit declares types
+    everywhere, regardless of whether the language requires them.
+    Per-language mechanism: JSDoc on JS / JSX (web kit default,
+    validated by `tsconfig.json` with `checkJs: true`); type hints
+    on Python; explicit annotations on Swift; native types on
+    Go / Rust / Java / Kotlin / C#. No `any` / `unknown` /
+    dynamic-type escape hatches. Section includes JSDoc patterns
+    for component props, hooks, and type-only utilities.
+  - **Comments (rewritten).** Three reasons to comment: types
+    (JSDoc / docstrings — part of the contract, not commentary),
+    why (hidden constraints, workarounds), and future-dev
+    orientation. JSDoc blocks are explicitly NOT what "comment
+    noise" means. Still excluded: what the code already says,
+    references to current task / fix / callers, decorative
+    banners, filler.
+- **`kit/web-conventions.md`** — language re-anchored on **JSX +
+  JSDoc** (not TypeScript). File extensions stay `.jsx` / `.js`;
+  type discipline is carried via JSDoc annotations and validated by
+  a `tsconfig.json` with `checkJs: true, strict: true, noEmit: true,
+  allowJs: true` for IDE-only type checking. TypeScript itself is a
+  per-project opt-in. Updated samples: `App.jsx` and `main.jsx` use
+  the explicit `getElementById`-throws-if-null pattern; `App.jsx`
+  has `@returns {JSX.Element}` JSDoc; architecture-layer table
+  describes the JSDoc-on-JS expectations per layer.
+
+#### Follow the pattern (don't recreate the wheel)
+
+- **`kit/craft-rules.md`** — new section as the second section in
+  the file (after "Build it right the first time", before "Modular
+  by default"):
+  - **Look for the pattern first.** Before adding a feature, scan
+    how similar features are done elsewhere; if a precedent exists,
+    follow it.
+  - **Follow even if you'd have done it differently.** Disagreeing
+    is fine; *silently forking* is not. If a pattern is wrong,
+    migrate everywhere — don't let divergence rot.
+  - **No pattern? Set the precedent deliberately** and document the
+    decision in `CLAUDE.md`.
+  - **Cascade of fallbacks.** Match the file → match the codebase →
+    fall back to kit conventions (`web-conventions.md`,
+    `ios-conventions.md`) when no project-local pattern exists.
+- **`kit/craft-rules.md`** — "When in doubt" trimmed to one bullet
+  ("Ask before guessing"). The "Match the file you're editing"
+  bullet moved up into "Follow the pattern" as part of the cascade
+  of fallbacks.
+
+---
+
 ## v0.9.1 — 2026-05-02
 
 ### Catalogue applies to conversational asks too
