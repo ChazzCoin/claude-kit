@@ -76,6 +76,38 @@ The `/release` skill detects this declaration first, then falls
 back to inferring from manifest files (`*.xcodeproj` → ios,
 `pyproject.toml` → python, `package.json` → web, etc.).
 
+## Macro architecture (orchestrator)
+
+If this project is a sub-repo of a multi-stack company, the
+cross-repo architectural truth — stack inventory, contracts,
+conventions, ADRs, migrations — lives in the company's
+**orchestrator** repo (built from
+[claude-orchestrator](https://github.com/ChazzCoin/claude-orchestrator)).
+Set the path:
+
+**Orchestrator path:** `{{ABSOLUTE_PATH_TO_COMPANY_ORCHESTRATOR or "n/a — solo project"}}`
+
+When set, agents read these orchestrator files alongside this
+project's own context:
+
+- `<orchestrator>/stack/inventory.md` — what every sub-repo is and
+  how they relate
+- `<orchestrator>/contracts/` — data models, endpoints, events
+- `<orchestrator>/conventions/` — naming, error handling, auth
+- `<orchestrator>/features/<x>.md` — any active feature plan
+  matching current work
+
+Also check `.claude/active-migrations.md` (and any other
+`.claude/active-*.md` files) on session start, per `task-rules.md`
+"Active orchestrator notices" — those are written by the
+orchestrator's `/migration` and similar skills, and list cross-repo
+coordination signals affecting this codebase. Do not edit them by
+hand.
+
+If the orchestrator path is `n/a — solo project`, the
+"Active orchestrator notices" rule in `task-rules.md` doesn't apply
+to this repo.
+
 ## Tech stack
 
 {{LIST THE STACK — language(s), framework(s), runtime(s), key
