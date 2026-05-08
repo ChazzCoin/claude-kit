@@ -20,6 +20,54 @@ human-readable rollback).
 
 ---
 
+## v0.11.0 — 2026-05-08
+
+### Orchestrator integration — read-side hooks for cross-repo notices
+
+Closes the loop with [claude-orchestrator](https://github.com/ChazzCoin/claude-orchestrator).
+Without this, the orchestrator could drop coordination signals into a
+sub-repo (`<repo>/.claude/active-migrations.md`, etc.) and the sub-kit
+wouldn't know to read them on session start.
+
+Generic enough to work with any orchestrator that writes `.claude/active-*.md`
+into a sub-repo — the v1 active concern is migrations, but `active-adrs.md`,
+`active-contract-changes.md`, and other future variants plug in without
+further kit changes.
+
+#### Added
+
+- **`bootstrap/CLAUDE.md.template`** grows a `## Macro architecture (orchestrator)`
+  section after `## Platform`. Declares the orchestrator repo path
+  (`{{ABSOLUTE_PATH_TO_COMPANY_ORCHESTRATOR or "n/a — solo project"}}`),
+  points at the orchestrator's macro-state files (`stack/`, `contracts/`,
+  `conventions/`, `features/`) for cross-repo context, and points at the
+  active-orchestrator-notices rule below for session-start reads.
+
+- **`kit/task-rules.md`** grows an `## Active orchestrator notices` section
+  between Schema discipline and Files-that-require-explicit-permission.
+  Defines the discipline for any `.claude/active-*.md` files dropped by an
+  upstream orchestrator: read on session start and at task start, treat as
+  authoritative cross-repo state, never edit or delete by hand, don't mirror
+  into project files. Falls open if the orchestrator path is `n/a — solo project`.
+
+#### Behavior
+
+When a sub-kit'd project is registered with an orchestrator:
+1. Sub-repo's CLAUDE.md declares the orchestrator path
+2. Orchestrator's `/migration` skill drops `<sub>/.claude/active-migrations.md`
+3. Sub-kit reads it on session start (per the new task-rules.md section)
+4. Sub-kit surfaces open migrations to the user in initial orientation
+5. Sub-kit treats the file as read-only — orchestrator regenerates it
+   wholesale; hand edits get overwritten
+
+#### Compatibility
+
+Pure additive change. Existing projects can pull via `/sync` without
+breakage. The orchestrator-integration sections are no-ops if the
+project doesn't declare an orchestrator path (`n/a — solo project`).
+
+---
+
 ## v0.10.0 — 2026-05-07
 
 ### Craft rules + web stack defaults
