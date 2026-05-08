@@ -99,6 +99,62 @@ If the project does not have an externally-owned schema, this section
 is informational only. `CLAUDE.md` should state explicitly whether the
 project owns its schema or mirrors one.
 
+## Active orchestrator notices
+
+If this project is a sub-repo of a multi-stack company (per
+`CLAUDE.md` "Macro architecture" section), the company's
+orchestrator may drop coordination signals into this repo's
+`.claude/`. These are **read-only** files written by orchestrator
+skills like `/migration` — they describe cross-repo state this
+project needs to be aware of.
+
+### Files in scope
+
+Any file matching `.claude/active-*.md`. Examples:
+
+- `.claude/active-migrations.md` — open cross-repo migrations
+  affecting this codebase, written by the orchestrator's
+  `/migration` skill.
+
+Future variants (`.claude/active-adrs.md`, etc.) follow the same
+discipline.
+
+### What to do
+
+- **Read each `active-*.md` file on session start.** If any contain
+  open entries, surface them in your initial orientation — what's
+  open, what's expected of this repo, link back to the orchestrator
+  file. Don't bury this in detail; the user needs to know without
+  asking.
+- **Re-read at task start.** Migrations open and close while a user
+  is mid-task; don't trust an early read indefinitely.
+- **Treat as authoritative.** If a migration entry says this repo's
+  part is `🟡 in progress`, that's the orchestrator's view of state.
+  If the local PR has actually shipped, the next move is to update
+  the orchestrator (`/migration update` from the orchestrator
+  instance) — not to edit the file here.
+
+### What you must NOT do
+
+- **Don't edit `.claude/active-*.md` by hand.** They're auto-managed
+  by orchestrator skills. Hand edits get overwritten on the next
+  orchestrator write and confuse the source-of-truth.
+- **Don't delete them.** When the orchestrator closes the last
+  applicable concern, it deletes the file itself. A stale empty
+  file is the orchestrator's bug, not something to clean up here.
+- **Don't propagate orchestrator state into project files.** The
+  orchestrator is the source for cross-repo state; mirroring it
+  into this project's `CLAUDE.md` or task specs creates two
+  truths. Reference, don't copy.
+
+### If no orchestrator is set
+
+If `CLAUDE.md`'s "Macro architecture" section has the orchestrator
+path as `n/a — solo project`, this rule doesn't apply. There's no
+upstream orchestrator dropping notices; any `.claude/active-*.md`
+files that appear are from a previous setup or accidental — flag
+to the user, don't read.
+
 ## Files that require explicit permission to modify
 
 Touching any of these = blocker, not autonomous work. The exact list
