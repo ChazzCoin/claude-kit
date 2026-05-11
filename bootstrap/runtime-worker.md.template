@@ -19,9 +19,13 @@ queue:
   broker_url_env: "REDIS_URL"   # env var holding the broker connection string
 
 env:
+  template: ".env-template"
+  file: ".env"
+  environments:
+    local: ".env"
+    production: ".env.production"
   required: []          # e.g. [REDIS_URL, DATABASE_URL]
   optional: {}
-  file: ".env"
 
 depends_on: []          # the broker + anything the worker calls
   # - { name: redis,    check: "redis-cli ping" }

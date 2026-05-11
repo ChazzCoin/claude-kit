@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-kit/manifest.schema.json",
   "name": "claude-kit",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "Portable Claude Code foundation — skills, rules, and templates that work across any repo, any language, any platform.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-kit",
@@ -82,6 +82,12 @@
         "to": ".claude/vocabulary.md",
         "policy": "file-replace",
         "note": "Canonical kit term definitions (versioning, batch, tag and bag, lifecycle states, etc.). Project-specific overrides live at .claude/vocabulary-overrides.md (bootstrap-only). Skills resolve overrides first, fall back to defaults."
+      },
+      {
+        "from": "kit/stamps.md",
+        "to": ".claude/stamps.md",
+        "policy": "file-replace",
+        "note": "Canonical models for every kit reference stamp. Documents the YAML frontmatter shape for each stamp model (cloud, runtime, test, save, skill, agent, mode, and proposed models for decisions, postmortems, tasks, handoffs, audits). Skill authors and stamp-aware tooling consult this file as the schema source-of-truth. Added in v0.19.0."
       },
       {
         "from": "kit/output-rules.md",
