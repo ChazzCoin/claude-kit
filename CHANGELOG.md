@@ -20,6 +20,77 @@ human-readable rollback).
 
 ---
 
+## v0.13.0 — 2026-05-10
+
+### Subagent foundation + settings scaffold
+
+Two additive pieces that bring claude-kit closer to the Claude Code
+feature surface projects already have access to but the kit didn't
+yet template:
+
+1. **Subagent definitions** — `kit/agents/` directory with three
+   canonical agents (code-reviewer, doc-scanner, spec-expander).
+   Kit-shipped agents synced to `.claude/agents/` per project.
+2. **Settings scaffold** — `bootstrap/settings.json.template` so
+   every project bootstrapped from the kit gets a Claude Code
+   `settings.json` shape it can extend (permissions, env, hooks).
+
+#### Added
+
+- **`kit/agents/code-reviewer.md`** — restricted to Read/Glob/Grep/Bash
+  (diagnostic). Opus default. Critical-review agent for `/review`,
+  `/audit`'s deep pass, pre-merge verification. Returns a structured
+  review with severity-tagged concerns (BLOCKER / WARN / NIT) and a
+  ship / fix-first / needs-discussion verdict.
+
+- **`kit/agents/doc-scanner.md`** — restricted to Read/Glob/Grep.
+  Sonnet default. Multi-file markdown scanner for `/update-docs`,
+  `/retro`, `/rule-promote`, `/lessons`. Returns findings grouped by
+  theme with `path:line` citations and verbatim quotes.
+
+- **`kit/agents/spec-expander.md`** — Read/Glob/Grep/Bash. Opus default.
+  Expands task stubs into full specs (purpose, acceptance criteria,
+  files expected to change, out-of-scope, test plan, risks). For
+  `/spec-phase`, `/task`, `/mvp`. Grounds specs in actual codebase
+  paths via Read/Glob — no fabricated file references.
+
+- **`bootstrap/settings.json.template`** — minimal Claude Code
+  settings scaffold with `permissions` / `env` / `hooks` keys ready
+  for the project to extend. Empty values — kit doesn't ship
+  opinionated defaults that might conflict with project preferences.
+  Use `/fewer-permission-prompts` after bootstrap to auto-populate
+  read-only auto-allows.
+
+#### MANIFEST changes
+
+- **Sync entry** added: `kit/agents/` → `.claude/agents/`
+  (`directory-mirror` policy, same as `kit/skills/` and `kit/modes/`).
+- **Bootstrap entry** added: `bootstrap/settings.json.template` →
+  `.claude/settings.json` (`skip-if-exists` policy — project owns it
+  after bootstrap).
+
+#### Compatibility
+
+Pure additive. Existing projects pull via `/sync`:
+
+- New `.claude/agents/` directory appears with three canonical agents.
+  Existing skills don't currently call named agents (only
+  `general-purpose` and `Explore`); the new agents are available for
+  skill authors to start using.
+- Existing projects that already have a `.claude/settings.json` are
+  untouched (skip-if-exists). Projects without one will receive the
+  scaffold on next bootstrap.
+
+#### Note on prior calibration
+
+A bug was floated and retracted during this release. The
+`/handoff` skill's "welcome.md auto-loads via @-import" contract
+was claimed to be violated; on re-verification, the bootstrap
+`CLAUDE.md.template` already ships the full `@-import` block
+including `@.claude/welcome.md`. No fix needed — contract honored.
+
+---
+
 ## v0.12.0 — 2026-05-10
 
 ### Save skill + script-craft doctrine — script-driven skill foundation

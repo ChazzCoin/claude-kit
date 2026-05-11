@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-kit/manifest.schema.json",
   "name": "claude-kit",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Portable Claude Code foundation — skills, rules, and templates that work across any repo, any language, any platform.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-kit",
@@ -34,6 +34,12 @@
         "to": ".claude/modes/",
         "policy": "directory-mirror",
         "note": "Mode definitions (drive prose). Each *.md is a mode. Activated by /mode <name>, which writes .claude/mode.md (the active-mode record, project-owned, never synced)."
+      },
+      {
+        "from": "kit/agents/",
+        "to": ".claude/agents/",
+        "policy": "directory-mirror",
+        "note": "Subagent definitions. Each *.md declares a named agent with frontmatter (name, description, tools, model) plus the agent's system prompt. Kit ships three canonical agents: code-reviewer (Read/Glob/Grep/Bash, opus), doc-scanner (Read/Glob/Grep, sonnet), spec-expander (Read/Glob/Grep/Bash, opus). Skills invoke via the Agent tool with subagent_type set to the agent name. Added in v0.13.0."
       },
       {
         "from": "kit/task-rules.md",
@@ -154,6 +160,12 @@
         "to": ".claude/pact.md",
         "policy": "skip-if-exists",
         "note": "Personal working-relationship contract with Claude. Distinct from CLAUDE.md (project facts). Portable across repos."
+      },
+      {
+        "from": "bootstrap/settings.json.template",
+        "to": ".claude/settings.json",
+        "policy": "skip-if-exists",
+        "note": "Claude Code settings scaffold — permissions, env vars, hooks, statusline. Empty structure so projects extend without inventing the shape. Project owns it after bootstrap; /sync never overwrites. Use /fewer-permission-prompts to auto-populate sensible read-only allows. Added in v0.13.0."
       },
       {
         "from": "bootstrap/welcome.md.template",
