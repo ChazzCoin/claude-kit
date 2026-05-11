@@ -121,22 +121,21 @@ Examples to delete:
 
 ## Commands
 
-The skills (`/build`, `/run`, `/release`) and the verification gate
-in `task-rules.md` discover commands from this section. Fill them in
-once and the rest of the kit picks them up.
+Per-runtime commands (build, dev, test, lint) live in
+`.claude/runtimes/<name>.md` reference stamps. Per-cloud commands
+(deploy, rollback) live in `.claude/clouds/<name>.md`. This section
+is a short overview pointing at the right place.
 
-| Purpose | Command |
+{{ONE-LINE OVERVIEW: e.g. "Two runtimes: `api` (FastAPI on :8000)
+and `web` (Vite on :5173). One cloud: `firebase-hosting` for the
+web frontend. See `.claude/runtimes/` and `.claude/clouds/`."}}
+
+| Top-level dispatch | Command |
 |---|---|
-| **Build** | `{{BUILD COMMAND — e.g. npm run build, cargo build, ./gradlew build, swift build}}` |
-| **Run / dev** | `{{RUN COMMAND — e.g. npm run dev, cargo run, python main.py}}` |
-| **Test (verification gate)** | `{{HEADLESS TEST COMMAND — e.g. npm run test:e2e, pytest, go test ./..., cargo test}}` |
-| **Test (focused / watched)** | `{{FILTERED OR WATCHED TEST COMMAND — e.g. npm run test:e2e:watch -- TASK-XXX}}` |
-| **Test (parade — final review)** | `{{FULL HEADED SUITE — e.g. npm run test:e2e:watch}}` |
-| **Deploy** | `{{DEPLOY COMMAND — e.g. npm run deploy, fastlane release}}` |
-| **Rollback** | `{{ROLLBACK COMMAND — e.g. firebase hosting:rollback, kubectl rollout undo}}` |
-| **Dependency audit** | `{{AUDIT COMMAND — e.g. npm audit, cargo audit, pip-audit}}` |
-
-If any of these don't apply, write `n/a` and leave a one-line note.
+| **List runtimes** | `ls .claude/runtimes/` |
+| **List clouds** | `ls .claude/clouds/` |
+| **Run a specific runtime** | See `commands.dev` in the runtime's stamp |
+| **Test (verification gate)** | See `.claude/tests/` or each runtime's `commands.test` |
 
 ## Toolchain pinning
 
@@ -191,14 +190,28 @@ security rules, generated code, vendored files. Delete if no extras.}}
 
 ## Local dev
 
-{{HOW TO GET A FRESH CLONE RUNNING. Step-by-step — install deps, env
-vars, secrets, run command, expected output. The goal: a new
-contributor can clone and be running in 10 minutes.}}
+Per-runtime setup (install, run, first-time gotchas) lives in
+`.claude/runtimes/<name>.md`. The goal is still "new contributor
+can clone and be running in 10 minutes" — but each runnable thing
+documents itself in its own stamp, so multi-runtime projects (API
++ web + worker) don't have to cram everything into one prose blob.
+
+{{TOP-LEVEL OVERVIEW ONLY: e.g. "Clone, then for each runtime in
+`.claude/runtimes/`, follow its First-time setup section. Order
+matters: start dependencies (postgres, redis) first, then the
+runtimes that depend on them."}}
 
 ## Environment variables
 
-{{LIST ENV VARS THE PROJECT READS. Reference .env.example as the
-authoritative list. Note any that are required vs optional.}}
+Per-runtime env vars live in each runtime's stamp under the `env`
+field (required, optional, env file path). Per-cloud env vars
+(deploy credentials, API tokens) live in
+`.claude/clouds/<name>.md`. This section is for env vars that
+span the whole project (rare).
+
+{{ONLY LIST ENV VARS THAT AREN'T COVERED BY A SPECIFIC RUNTIME OR
+CLOUD STAMP. If everything's covered there, write "None at the
+project level — see runtime / cloud stamps."}}
 
 ## Test infrastructure
 
