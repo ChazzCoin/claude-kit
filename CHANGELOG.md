@@ -20,6 +20,89 @@ human-readable rollback).
 
 ---
 
+## v0.17.0 — 2026-05-11
+
+### Auto-save (toggle) + install-hook foundation
+
+Adds session-lifecycle auto-save built on Claude Code hooks. Toggle
+ON for big sessions; toggle OFF when not needed. Plus a reusable
+foundation (`install-hook`) that any future skill can use to wire
+up its own hooks.
+
+#### Added
+
+- **`kit/skills/install-hook/`** — reusable JSON manipulator for
+  Claude Code's `settings.json` hooks block. Subcommands:
+  `add <Event> <command>`, `remove <Event> <command>`, `list`.
+  Idempotent. Defaults to `.claude/settings.local.json`
+  (per-user, gitignored) but can target any settings file via
+  `--target`. Uses python3 for JSON manipulation (per
+  `script-craft.md`'s "Python only when bash is clumsy" rule —
+  JSON-by-bash is genuinely clumsy).
+
+- **`kit/skills/auto-save/`** — toggle skill that installs three
+  Claude Code hooks via `install-hook`:
+  - `SessionStart` → `auto-save.sh context` emits JSON injecting
+    "auto-save mode active" instruction into the AI's context.
+    The AI reads it on session start and knows to do periodic
+    in-session merges via `/save --mode replace`.
+  - `PreCompact` → `auto-save.sh archive` archives the current
+    `SAVED.md` before context compaction (otherwise the thread is
+    lost and the next merge would write a stub).
+  - `SessionEnd` → `auto-save.sh archive` archives `SAVED.md` at
+    session termination — the standard archive-style save we'd
+    do manually.
+
+  Subcommands: `on`, `off`, `status`. Per-user by default
+  (writes to `.claude/settings.local.json`).
+
+#### Cadence + merge rules
+
+When auto-save is on, the SessionStart hook injects this guidance:
+
+> Every 5–8 user prompts, OR at any clear thread shift, invoke
+> `/save --mode replace` with merged content.
+
+Section-by-section merge behavior (in auto-save's SKILL.md):
+
+| Section | Behavior |
+|---|---|
+| `> **When.**` | Update timestamp |
+| `> **Thread.**` | Keep unless materially shifted |
+| `✅ What we did` | **Accumulate** |
+| `🧠 What we worked out` | **Accumulate** |
+| `🚧 What's open` | **Replace** with current state |
+| `🧪 Threads not yet pulled` | **Accumulate** |
+| `📎 References` | **Accumulate, dedupe** |
+
+#### Honest calibration
+
+Two schema assumptions in this release that are testable only
+with real use:
+
+1. Hook entry schema (`{"matcher": "", "hooks": [{"type": "command", ...}]}`).
+   If Claude Code expects a simpler shape for session-lifecycle
+   hooks, `install-hook.sh` is the single place to fix.
+2. SessionStart context-injection output shape
+   (`{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "..."}}`).
+   If the actual schema differs, `auto-save.sh`'s `cmd_context`
+   function is the single place to fix.
+
+Both are isolated to one function each — easy patch in v0.17.1 if
+needed.
+
+#### Compatibility
+
+Pure additive. Existing skills unchanged. Two new skill directories
+appear in projects on next `/sync`. No structural-change alert
+(no breaking changes).
+
+The `install-hook` script is reusable foundation — future skills
+wanting to wire up their own hooks should use it rather than
+hand-editing `settings.json`.
+
+---
+
 ## v0.16.0 — 2026-05-11
 
 ### Auditor agent + `.claude/clouds/` structure
