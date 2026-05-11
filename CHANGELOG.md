@@ -20,6 +20,150 @@ human-readable rollback).
 
 ---
 
+## v0.18.0 — 2026-05-11
+
+### `.claude/runtimes/` + `.claude/tests/` — reference stamps for local-dev + test scenarios
+
+Structural change worth flagging. Two new per-repo structures, both
+following the **reference stamp** pattern established by
+`.claude/clouds/` in v0.16.0:
+
+- **Reference stamp** — the YAML frontmatter at the top of a
+  markdown file that gives it a machine-readable identity. Skills
+  parse the stamp; humans read the body. One file per resource,
+  one directory per concept. Coined this release as the canonical
+  kit term for the pattern we've been shipping since clouds.
+
+#### Added
+
+**`.claude/runtimes/`** — one file per runnable thing in the project.
+Captures how to install, run, test, and lint it; ports; env
+requirements; dependencies on other runtimes/services; health
+checks. Replaces the prose `## Commands` / `## Local dev` /
+`## Environment variables` sections in CLAUDE.md.
+
+Four kind-specific templates ship:
+
+- **`_template-dev-server.md`** — long-running with a port (web
+  frontends, REST/GraphQL APIs).
+- **`_template-mobile-app.md`** — build-and-run (iOS, Android,
+  Flutter, React Native). Captures simulator/device defaults
+  and build artifact paths.
+- **`_template-script.md`** — one-shot CLI scripts and batch
+  tools.
+- **`_template-worker.md`** — long-running queue consumers / cron
+  jobs / file watchers. Captures broker / queue config.
+
+**`.claude/tests/`** — one file per integration test scenario.
+Each test declares which runtimes it requires, points at a
+verification script, and (importantly) marks that script as a
+**reference implementation** for clients wanting to call the
+same endpoints or walk the same flow.
+
+Four kind-specific templates ship:
+
+- **`_template-endpoint-test.md`** — single API endpoint
+  verification. Script doubles as how-to-call-this-endpoint
+  documentation for client code.
+- **`_template-flow.md`** — multi-step user flow (signup,
+  checkout, etc.).
+- **`_template-e2e.md`** — end-to-end across multiple runtimes
+  (web + api + worker). Coordinates parallel runtime starts.
+- **`_template-smoke.md`** — minimal "does it boot?" check.
+
+#### Why both at once
+
+Runtimes and tests are paired concepts. A test declares
+`runtimes_required: [api]`, and the orchestrating skill (future
+work) reads the runtime stamp to know how to start it. Tests
+reference runtimes; runtimes have no dependencies on tests. They
+ship together so the schema can co-evolve.
+
+#### MANIFEST changes
+
+- **8 new bootstrap entries** (skip-if-exists for each template).
+  Filename pattern: `_template-<kind>.md` — the `_` prefix marks
+  them as templates, not real entries.
+- **2 new scaffold dirs**: `.claude/runtimes/`, `.claude/tests/`.
+- **`bootstrap/CLAUDE.md.template`** — `## Commands`, `## Local dev`,
+  and `## Environment variables` sections become short overviews
+  pointing at `.claude/runtimes/`. **Affects fresh bootstraps only;
+  existing projects keep their content** (skip-if-exists).
+
+#### The "reference implementation" insight
+
+Tests aren't just verification. Every test's verification script
+shows exactly how a client calls the system. iOS / web / other
+clients can read the test scripts to learn the contract.
+
+The `references` field in test stamps makes this explicit:
+
+```yaml
+references:
+  - file: tests/scripts/chat-happy-path.sh
+    purpose: "Reference implementation — how to call POST /chat from a shell"
+```
+
+A future `/show-contract <endpoint>` skill could pull these
+together. Not built yet — laying the ground.
+
+#### Migration from CLAUDE.md prose → `.claude/runtimes/` (existing projects)
+
+If your project has commands and run instructions in CLAUDE.md,
+the new structure is strictly cleaner — especially for multi-
+runtime projects.
+
+**No skill is forced to use `.claude/runtimes/` in v0.18.0.**
+`/build`, `/run`, `/release` continue to read CLAUDE.md as before.
+Migrate when ready; future versions may integrate the skills.
+
+**Steps:**
+
+1. After `/sync` pulls v0.18.0, you'll have four runtime templates
+   and four test templates under `.claude/runtimes/_template-*.md`
+   and `.claude/tests/_template-*.md`, plus empty `runtimes/` and
+   `tests/` directories ready for real entries.
+
+2. **For each runnable thing** in your project (API, web frontend,
+   worker, CLI tool, mobile app), pick the right template and
+   create `.claude/runtimes/<name>.md` (e.g. `api.md`, `web.md`,
+   `worker.md`). Naming: kebab-case, descriptive of what it is.
+
+3. **Fill in the stamp first** (the YAML frontmatter):
+   - `name`, `kind`, `language`, `framework`
+   - `commands` — from your CLAUDE.md `## Commands` table
+   - `ports`, `env`, `depends_on` — from CLAUDE.md sections + .env.example
+   - `health_check` — from your project knowledge
+   - `process.type`, `tags` — context
+
+4. **Fill in the body** — the qualitative bits from CLAUDE.md's
+   `## Local dev` section: first-time setup, gotchas, references.
+
+5. **Replace CLAUDE.md sections** with short overviews:
+   - `## Commands` → one line pointing at `.claude/runtimes/`
+   - `## Local dev` → one line pointing at `.claude/runtimes/`
+     for the per-runtime first-time setup
+   - `## Environment variables` → note that per-runtime env vars
+     live in stamps now
+
+6. **For tests** — for any integration scenario you regularly
+   exercise (an endpoint smoke test, a signup flow, an e2e),
+   pick a test template and create `.claude/tests/<name>.md`.
+   Point the `verification.script` at where your actual script
+   lives in the repo.
+
+#### Compatibility
+
+- **Pure additive at the file-layout level.** Existing projects
+  keep all current files.
+- **`/build`, `/run`, `/release` continue reading CLAUDE.md** as
+  before. Skill integration with the new stamps is targeted for
+  v0.19.0+.
+- **The bootstrap CLAUDE.md.template change is fresh-bootstrap-only.**
+  `skip-if-exists` protects existing projects.
+
+---
+
 ## v0.17.0 — 2026-05-11
 
 ### Auto-save (toggle) + install-hook foundation
