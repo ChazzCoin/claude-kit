@@ -48,6 +48,12 @@
         "note": "Universal code-quality discipline — build it right the first time, follow the pattern, modular by default, naming, type strictness (declare types in any language; JSDoc on JS/JSX), comments, error handling. Read alongside task-rules.md. Added in v0.10.0."
       },
       {
+        "from": "kit/script-craft.md",
+        "to": ".claude/script-craft.md",
+        "policy": "file-replace",
+        "note": "How we create, update, and run scripts. Doctrine for script-driven skills (skill folder ships <name>.sh that owns the deterministic mechanics; SKILL.md routes content + choices to the script). Canonical example is kit/skills/save/save.sh. Read before writing any script."
+      },
+      {
         "from": "kit/git-flow-rules.md",
         "to": ".claude/git-flow-rules.md",
         "policy": "file-replace",
@@ -200,6 +206,7 @@
       "docs/proto",
       "docs/mvp",
       "docs/refinement",
+      "docs/saved",
       ".claude/tradeoffs",
       ".claude/inbox"
     ]
