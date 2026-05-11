@@ -20,6 +20,85 @@ human-readable rollback).
 
 ---
 
+## v0.14.0 — 2026-05-10
+
+### /load skill + user-global save state + branch tracking
+
+Structural change worth flagging: **`/save` no longer writes to
+`docs/saved/` inside the project repo.** Saves now live in
+user-global space at `~/.claude/projects/<mangled-repo-key>/saves/`,
+matching the existing memory-directory convention.
+
+The bigger picture: claude-kit is starting to push toward
+user-separation where it makes sense. Personal continuity (saves,
+working memory, "where I left off") goes user-global; team-shared
+project context (decisions, postmortems, audits, handoffs) stays
+project-local. `/save` is the first feature to land in this
+direction; `/handoff` is its team-shared counterpart.
+
+#### Added
+
+- **`/load` skill** — read-side companion to `/save`. Reads
+  `SAVED.md`, scans recent TIMELINE entries, and surfaces `git log`
+  activity since the save was written so the AI can flag mismatches
+  ("you said X was open, but commit Y closed it"). Includes
+  `load.sh` script with subcommands `status` / `orient` / `branch` /
+  `checkout`. Exit codes 0/1/2/3 per `script-craft.md`.
+
+- **Branch tracking in `/save`** — `save.sh write` auto-injects
+  `> **Branch.** <name>` into SAVED.md's header block if not
+  already present. Captured via `git symbolic-ref --short HEAD` —
+  records "None" for detached HEAD or repos with no commits.
+  Idempotent: won't overwrite an existing Branch line, so users can
+  manually mark a save as branch-agnostic (`> **Branch.** None`).
+
+- **`load.sh checkout` subcommand** — checks out the branch
+  recorded in SAVED.md. Strict refusals: dirty working tree
+  (untracked counts), branch doesn't exist locally, branch is in
+  use by another worktree, or saved branch is "None"/unrecorded.
+
+- **`save.sh current-branch` subcommand** — exposed for `/load`
+  and external readers. Echoes current branch or "None".
+
+#### Changed
+
+- **`/save` storage location** moved from project-tracked
+  `docs/saved/` to user-global
+  `~/.claude/projects/<key>/saves/`. Three concrete benefits:
+  1. **Survives `git checkout`.** Saves visible from any branch.
+     `/load` can read a save and offer to switch back to the saved
+     branch from anywhere.
+  2. **Unified across worktrees.** `git rev-parse --git-common-dir`
+     resolves to the *main* repo path; `cd -P` / `pwd -P` follows
+     symlinks (critical on macOS where `/tmp → /private/tmp`
+     would otherwise fragment keys). All worktrees of one project
+     share one save state.
+  3. **Cross-project trajectory.** `ls ~/.claude/projects/*/saves/SAVED.md`
+     gives a one-shot "what have I been working on lately" view.
+
+- **`MANIFEST.json`** — `docs/saved` removed from the scaffold
+  directories array. The kit no longer creates that path; saves
+  initialize lazily under `~/.claude/projects/<key>/saves/` on
+  first `/save`.
+
+#### Compatibility
+
+If you ran `/save` between v0.12.0 and v0.13.0, your old saves
+are still at `<project>/docs/saved/`. They aren't readable by
+the new `/load` (which looks only in user-global space). To
+migrate, manually move them:
+
+```sh
+mkdir -p ~/.claude/projects/$(pwd -P | tr / -)/saves/
+mv docs/saved/* ~/.claude/projects/$(pwd -P | tr / -)/saves/
+rmdir docs/saved/
+```
+
+In practice the migration burden is near-zero — `/save` only
+shipped 12 hours ago in v0.12.0 and isn't yet in active use.
+
+---
+
 ## v0.13.0 — 2026-05-10
 
 ### Subagent foundation + settings scaffold

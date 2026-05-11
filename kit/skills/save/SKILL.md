@@ -1,6 +1,6 @@
 ---
 name: save
-description: Mid-session state-save for an active thread of work. Snapshots what we did, what we worked out, and what's open right now — distinct from `/handoff` (project-leave) and `/status` (live read-only dashboard). Writes to `docs/saved/SAVED.md` (always current), archives previous saves to `docs/saved/<YYYY-MM-DD-HHMM>.md`, and maintains a newest-first index in `docs/saved/TIMELINE.md`. File plumbing is handled by the shipped `save.sh` script — the AI synthesizes content; the script handles archive policy, timestamps, and TIMELINE upkeep. Triggered when the user wants to checkpoint mid-thread — e.g. "/save", "save where we are", "snapshot this thread", "checkpoint before I switch contexts", "save our progress", "log this state".
+description: Mid-session state-save for an active thread of work. Snapshots what we did, what we worked out, and what's open right now — distinct from `/handoff` (project-leave) and `/status` (live read-only dashboard). Writes to `~/.claude/projects/<key>/saves/SAVED.md` (always current), archives previous saves to `~/.claude/projects/<key>/saves/<YYYY-MM-DD-HHMM>.md`, and maintains a newest-first index in `~/.claude/projects/<key>/saves/TIMELINE.md`. File plumbing is handled by the shipped `save.sh` script — the AI synthesizes content; the script handles archive policy, timestamps, and TIMELINE upkeep. Triggered when the user wants to checkpoint mid-thread — e.g. "/save", "save where we are", "snapshot this thread", "checkpoint before I switch contexts", "save our progress", "log this state".
 ---
 
 # /save — Checkpoint the current thread of work
@@ -19,9 +19,9 @@ diary entry, not a checkpoint.
 
 ## Behavior contract
 
-- **Writes durable docs only.** Output lands at `docs/saved/SAVED.md`
-  (current) plus archived history at `docs/saved/<timestamp>.md` and
-  `docs/saved/TIMELINE.md` (index). No source-code edits. Never
+- **Writes durable docs only.** Output lands at `~/.claude/projects/<key>/saves/SAVED.md`
+  (current) plus archived history at `~/.claude/projects/<key>/saves/<timestamp>.md` and
+  `~/.claude/projects/<key>/saves/TIMELINE.md` (index). No source-code edits. Never
   auto-commits.
 - **Script-driven mechanics — do not hand-write the files.** All
   plumbing runs through `save.sh` (ships in this skill's folder).
@@ -47,8 +47,14 @@ Lives in this skill's folder. Path varies by context:
 - In the kit repo: `kit/skills/save/save.sh`
 - In a synced project: `.claude/skills/save/save.sh`
 
-Always invoked from inside a git repo — the script resolves
-`docs/saved/` relative to the repo root, not the caller's cwd.
+Always invoked from inside a git repo — the script resolves the
+project's saves directory under `~/.claude/projects/<key>/saves/`,
+where `<key>` is the absolute path of the *main* repo root with
+slashes replaced by hyphens (e.g. `-Users-chazzromeo-claude-kit`).
+
+The main-repo lookup uses `git rev-parse --git-common-dir`, so all
+linked worktrees of the same project share **one** save state —
+not one per worktree.
 
 **Always invoke with `bash` explicitly**, not `./save.sh`. The kit's
 `/sync` mechanism doesn't guarantee the executable bit survives the
@@ -62,19 +68,67 @@ bash <skill-dir>/save.sh status
     Reports SAVED.md state and archive count.
 
 bash <skill-dir>/save.sh write <content-file> [--mode auto|archive|replace]
-    Writes <content-file> into docs/saved/SAVED.md.
+    Writes <content-file> into ~/.claude/projects/<key>/saves/SAVED.md.
     --mode auto      (default) archive existing SAVED.md if non-empty, then write
     --mode archive   force archive of existing SAVED.md before writing
                      (errors if SAVED.md is empty/missing)
     --mode replace   overwrite SAVED.md without archiving
 
 bash <skill-dir>/save.sh archive
-    Archives current SAVED.md to docs/saved/<YYYY-MM-DD-HHMM>.md and
+    Archives current SAVED.md to ~/.claude/projects/<key>/saves/<YYYY-MM-DD-HHMM>.md and
     prepends an entry to TIMELINE.md. No new content written.
+
+bash <skill-dir>/save.sh current-branch
+    Echoes the current git branch ("None" for detached HEAD or no
+    commits). Used internally by `write` to auto-inject the Branch
+    metadata; exposed for `/load` and other readers.
 ```
 
 Exit codes: `0` success, `1` operational error, `2` usage error,
 `3` refused (e.g. archive requested but SAVED.md is empty).
+
+### Branch metadata auto-injection
+
+After `write` copies the content into SAVED.md, the script checks
+for a `> **Branch.** ...` line. If absent, it injects one based on
+the current branch (or "None" for detached HEAD / no-commits). The
+line is inserted after the last `> **...**` header line in the
+content (typically right after `> **Thread.**`).
+
+This makes the branch part of every save without requiring the AI
+to remember to capture it. If the user wants to override (e.g.
+mark a save as branch-agnostic), they can write `> **Branch.** None`
+in the content explicitly — the script won't overwrite an existing
+Branch line.
+
+`/load` reads this line to detect mismatch between saved branch
+and current branch, and optionally checks out the saved branch.
+
+## Where saves live (and why)
+
+Saves live **outside the project repo** at
+`~/.claude/projects/<key>/saves/`. This is the same convention as
+the kit's memory directory.
+
+This is a deliberate choice — saves are **personal continuity, not
+project documentation:**
+
+- **Survive branch switches.** `git checkout <other-branch>` doesn't
+  affect saves. /load can read your save from any branch and offer
+  to switch you back to the saved branch.
+- **Unified across worktrees.** All worktrees of the same project
+  share one save state, instead of fragmenting per-worktree.
+- **Per-user, per-project.** Two developers on the same repo don't
+  see each other's saves — and shouldn't. The team-shared snapshot
+  is `/handoff`, not `/save`.
+- **Cross-project trajectory.** `ls ~/.claude/projects/*/saves/` gives
+  a one-shot "what have I been working on lately" view across every
+  project that uses the kit.
+
+The kit's `/handoff` is the project-shared, team-visible
+counterpart. Use `/save` for personal "where I left off" continuity;
+use `/handoff` when you're stepping away and want a snapshot the
+team (or future-you in 6 months) can pick up cold.
 
 ## Process
 
@@ -92,7 +146,7 @@ output is one line — read it before synthesizing anything.
 
   > SAVED.md already has content from `<mtime>`. Three options:
   > **(a) archive + new on top** (default — old content moves to
-  > `docs/saved/<timestamp>.md`, TIMELINE.md gets an entry)
+  > `~/.claude/projects/<key>/saves/<timestamp>.md`, TIMELINE.md gets an entry)
   > **(b) replace** (overwrite SAVED.md, drop old)
   > **(c) cancel**
 
@@ -124,9 +178,9 @@ Render:
 ```markdown
 # 💾 Saved
 
-- **Current.** `docs/saved/SAVED.md` — <line count> lines.
-- **Archived previous.** `docs/saved/<archive>.md` *(only if archive happened)*
-- **Timeline.** `docs/saved/TIMELINE.md` — <total archived> entries.
+- **Current.** `~/.claude/projects/<key>/saves/SAVED.md` — <line count> lines.
+- **Archived previous.** `~/.claude/projects/<key>/saves/<archive>.md` *(only if archive happened)*
+- **Timeline.** `~/.claude/projects/<key>/saves/TIMELINE.md` — <total archived> entries.
 
 **Pick this up first when you come back:**
 1. <terse — drawn from "What's open">
@@ -146,6 +200,7 @@ script uses it for TIMELINE.md.
 
 > **When.** <YYYY-MM-DD HH:MM>
 > **Thread.** <one sentence — what we're working on right now>
+> **Branch.** <branch-name or "None">
 
 ---
 
@@ -205,7 +260,7 @@ not an empty bullet.
 - **Bold the claim, dash, reason.** `- **Claim** — reason.`
 - **First H1 is the title.** The script reads it for TIMELINE.md.
   Don't bury it under a frontmatter block or quote.
-- **Cite via relative paths from `docs/saved/`** (i.e. `../../foo.md`)
+- **Cite via relative paths from `~/.claude/projects/<key>/saves/`** (i.e. `../../foo.md`)
   so links work when the archive file is opened directly.
 
 ## What you must NOT do
@@ -231,7 +286,7 @@ not an empty bullet.
 
 ## Edge cases
 
-- **First /save in a project.** `docs/saved/` doesn't exist yet.
+- **First /save in a project.** `~/.claude/projects/<key>/saves/` doesn't exist yet.
   The script creates it; SAVED.md is written directly with no
   archive. TIMELINE.md is created with header + zero entries
   (entries only appear when something gets archived).
@@ -246,10 +301,10 @@ not an empty bullet.
   verbatim. Don't fall back to hand-writing — that defeats the
   point of the split.
 - **User wants to undo a save.** Not supported by the script.
-  Tell them: `git checkout docs/saved/` to revert, or rename the
+  Tell them: `git checkout ~/.claude/projects/<key>/saves/` to revert, or rename the
   most recent archive back to SAVED.md manually.
-- **User wants to see history.** Read `docs/saved/TIMELINE.md` —
-  that's its job. Or list `docs/saved/20*.md`.
+- **User wants to see history.** Read `~/.claude/projects/<key>/saves/TIMELINE.md` —
+  that's its job. Or list `~/.claude/projects/<key>/saves/20*.md`.
 
 ## When NOT to use this skill
 
@@ -262,9 +317,9 @@ not an empty bullet.
 
 ## What "done" looks like for a /save session
 
-`docs/saved/SAVED.md` updated with the current thread snapshot.
+`~/.claude/projects/<key>/saves/SAVED.md` updated with the current thread snapshot.
 If a previous save existed and `--mode` was `auto` or `archive`,
-the old content lives at `docs/saved/<YYYY-MM-DD-HHMM>.md` and
-`docs/saved/TIMELINE.md` has a fresh entry at the top.
+the old content lives at `~/.claude/projects/<key>/saves/<YYYY-MM-DD-HHMM>.md` and
+`~/.claude/projects/<key>/saves/TIMELINE.md` has a fresh entry at the top.
 Uncommitted. The user can re-read `SAVED.md` to resume the
 thread cold, or scan TIMELINE.md for the long view.
