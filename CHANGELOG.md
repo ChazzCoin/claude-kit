@@ -20,6 +20,70 @@ human-readable rollback).
 
 ---
 
+## v0.15.0 — 2026-05-10
+
+### /status becomes script-driven + inbox surfaced
+
+Structural change worth flagging: **`/status` is now Cat 1F per
+`script-craft.md` — the entire user-facing report is rendered by
+`kit/skills/status/status.sh`, not synthesized by the AI per
+invocation.** Same project state → same output, every time.
+
+Plus: status now surfaces unread inbox messages addressed to you,
+so they're visible alongside production / branch / tasks state
+instead of waiting for a separate `/inbox` run.
+
+#### Added
+
+- **`kit/skills/status/status.sh`** — deterministic project
+  snapshot renderer. Subcommands:
+  - `dashboard` (default) — full markdown report including §2
+    box, recent commits, open PRs (via `gh`), in-flight tasks,
+    top of roadmap, and inbox.
+  - `data` — raw `key=value` lines for composition / debug.
+  - Exit codes 0 / 1 (not in git repo) / 2 (usage error).
+
+- **Inbox section in /status output** — counts and lists up to 5
+  unread messages from `.claude/inbox/<your-handle>.md` (identity
+  from `git config user.name`). Silently skipped if the project
+  has no `.claude/inbox/` directory.
+
+#### Changed
+
+- **`kit/skills/status/SKILL.md`** — gains a "**Output policy
+  (the load-bearing rule)**" section with explicit MUST /
+  MUST NOT / MAY language. The AI's job is to pass the script's
+  stdout to the user verbatim — no summary, no preamble, no
+  closing remarks, no section reordering. This is the load-bearing
+  contract for every script-driven skill going forward.
+
+- **`/status` output shape** — values in the §2 dashboard now use
+  ASCII separators (`|`, `/`, `-`) instead of `·` and `—`. Reason:
+  bash `${#var}` is locale-dependent (bytes vs chars), so values
+  with multi-byte chars broke padding math. Box-drawing chars in
+  borders stay Unicode (those aren't padded). Net effect: rock-solid
+  alignment, slightly less ornate values.
+
+#### Deferred to a later release
+
+- §23 Activity timeline (was sourced from `tasks/AUDIT.md`)
+- §25 Alert variants ("anything off" section)
+
+Both are conditional sections in the original spec; the v1 script
+covers the core ~90% of snapshot value. They can land in v0.15.x
+or v0.16.x once we know the core is stable.
+
+#### Compatibility
+
+Pure additive at the file-layout level. Existing projects pull via
+`/sync` without breakage. The script-driven render is a behavior
+change for `/status`, but the skill's *purpose* (read-only project
+snapshot) is unchanged. Anyone who built habits around the
+free-form prior output will notice a tighter, more predictable
+shape.
+
+---
+
 ## v0.14.0 — 2026-05-10
 
 ### /load skill + user-global save state + branch tracking
