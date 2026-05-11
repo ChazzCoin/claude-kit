@@ -36,6 +36,13 @@ starting work.
 > every language. Sits between this file (process) and the platform
 > extensions (stack).
 
+> **Script craft.** When a skill ships a script (`kit/skills/<name>/<name>.sh`
+> or similar), follow `script-craft.md`. It covers how to create,
+> update, and run scripts in the kit — the deterministic-mechanics
+> layer that locks down "what plumbing happens every time" so the AI
+> doesn't re-interpret it on each invocation. Canonical example is
+> `kit/skills/save/save.sh`. Read before writing or modifying a script.
+
 > **Output styles.** Structured outputs — status reports, deployment
 > reports, audits, backlogs, test results, decisions, and similar
 > deliverables — render via the kit's output catalogue. The
