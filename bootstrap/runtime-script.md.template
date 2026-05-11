@@ -14,9 +14,12 @@ commands:
 default_args: ""        # e.g. "--help"
 
 env:
+  template: ".env-template"           # committed example
+  file: ".env"                        # default local
+  environments:                       # named profiles (optional)
+    local: ".env"
   required: []
   optional: {}
-  file: ".env"
 
 depends_on: []          # services or other runtimes the script needs
 

@@ -16,9 +16,14 @@ ports:
   # add more as needed: { test: 8001, debug: 8002 }
 
 env:
-  required: []           # e.g. [DATABASE_URL, OPENAI_API_KEY]
-  optional: {}           # e.g. { LOG_LEVEL: "INFO", MAX_CONNECTIONS: "10" }
-  file: ".env"           # local env file path
+  template: ".env-template"           # committed example file (often gitignored deviates from this)
+  file: ".env"                        # default local env file (loaded when --env not specified)
+  environments:                       # named profiles → env file paths
+    local: ".env"
+    test: ".env.test"
+    production: ".env.production"
+  required: []                        # e.g. [DATABASE_URL, OPENAI_API_KEY]
+  optional: {}                        # e.g. { LOG_LEVEL: "INFO", MAX_CONNECTIONS: "10" }
 
 depends_on: []           # other runtimes / services this needs
   # - { name: postgres, check: "pg_isready -h localhost -p 5432" }
@@ -59,9 +64,27 @@ Defaults to port `<port>`. Set `PORT` env var to override.
 ## First-time setup
 
 1. Install deps: `<install command>`
-2. Copy `.env.example` → `.env` and fill in required vars
+2. Copy `<env.template>` → `.env` (or whichever profile from `env.environments`):
+   ```sh
+   cp .env-template .env
+   ```
+   Fill in `env.required` vars.
 3. Start dependencies (postgres, redis, etc. — see `depends_on` in stamp)
-4. Run the dev command above
+4. **Preflight:** `bash .claude/skills/runtime/runtime.sh check <name>`
+   Validates env vars are set + deps are reachable before you boot.
+5. Run the dev command above
+
+## Env profiles
+
+Switch between environments via the `--env <profile>` flag on
+`runtime.sh check`:
+
+```sh
+runtime.sh check <name> --env test         # validate against .env.test
+runtime.sh check <name> --env production   # validate against .env.production
+```
+
+`env.environments` in the stamp declares which profiles exist.
 
 ## Gotchas
 
