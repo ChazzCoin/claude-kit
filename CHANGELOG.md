@@ -20,6 +20,72 @@ human-readable rollback).
 
 ---
 
+## v0.12.0 — 2026-05-10
+
+### Save skill + script-craft doctrine — script-driven skill foundation
+
+Introduces the **script-driven skill pattern**: skills whose mechanics
+live in a versioned bash script that ships alongside the SKILL.md.
+The script owns deterministic plumbing (file moves, archive policy,
+timestamps); the AI owns synthesis and choice routing. Same outcome
+every run — no AI re-interpretation of mechanics.
+
+`/save` is the canonical example and the first user-facing skill in
+this pattern. It's distinct from `/handoff`: thread-of-work
+checkpoint (lightweight, frequent) vs project-leave snapshot
+(heavyweight, occasional).
+
+#### Added
+
+- **`kit/skills/save/SKILL.md`** + **`kit/skills/save/save.sh`** —
+  mid-session state-save. Snapshot what we did, worked out, and
+  what's open. Script handles `docs/saved/SAVED.md` (current),
+  archived snapshots at `docs/saved/<YYYY-MM-DD-HHMM>.md`, and
+  newest-first index at `docs/saved/TIMELINE.md`. Subcommands:
+  `status`, `write <file> [--mode auto|archive|replace]`, `archive`.
+  Exit codes: 0/1/2/3 per script-craft.md.
+
+- **`kit/script-craft.md`** — doctrine for create/update/run. Covers
+  when a script is appropriate (deterministic mechanics) vs when
+  not (synthesis/judgment), folder structure, language policy
+  (bash default), the canonical skeleton, exit-code contract, I/O
+  discipline, and portability boundary (BSD/macOS + GNU/Linux;
+  Windows out of scope). Synced to projects as
+  `.claude/script-craft.md` (file-replace).
+
+- **`docs/saved/`** added to MANIFEST scaffold — projects get the
+  directory at init.
+
+#### Changed
+
+- **`kit/skills/sync/SKILL.md`** Step 6 — added explicit "Preserve
+  exec bit on script files" rule. Every copy operation chmod +x's
+  files under `kit/skills/**/*.{sh,py,ts,js,mjs}` and `bin/`.
+  Belt-and-suspenders with the SKILL.md `bash <script>` invocation
+  convention that script-driven skills use.
+
+- **`kit/skills/new-skill/SKILL.md`** — sixth input added to the
+  scaffold question block: "Script mechanics — none / partial /
+  full?" Picks a script-mode clause for the behavior contract.
+  If partial or full, scaffolds `<name>.sh` skeleton alongside
+  SKILL.md, following script-craft.md conventions. Pushback rule
+  fires when the script answer mismatches the purpose (e.g.
+  "partial" for a pure-synthesis skill).
+
+- **`kit/task-rules.md`** — added blockquote pointer to
+  `script-craft.md` in the doctrine-references section, alongside
+  the existing Craft / Output / Git / Release / Batch / Vocabulary
+  pointers.
+
+#### Compatibility
+
+Pure additive. Existing projects pull via `/sync` without breakage.
+The new SKILL.md questions in `/new-skill` only fire when
+scaffolding a new skill; existing skills are unaffected. The chmod
+rule in `/sync` only chmod's files the sync was already copying.
+
+---
+
 ## v0.11.0 — 2026-05-08
 
 ### Orchestrator integration — read-side hooks for cross-repo notices
