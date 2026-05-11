@@ -20,6 +20,134 @@ human-readable rollback).
 
 ---
 
+## v0.19.0 — 2026-05-11
+
+### `/runtime` preflight + named env profiles + `stamps.md` doctrine
+
+Structural change worth flagging. Three closely-tied additions:
+
+1. **`/runtime` skill** — preflight + env management for runtime
+   stamps. Validates `env.required` is set, runs `depends_on`
+   check commands, reports a clean diagnostic with VERDICT:
+   READY / NOT READY.
+2. **Named env profiles** — runtime stamps gain `env.template`
+   and `env.environments` fields. Switch profiles via
+   `runtime.sh check <name> --env <profile>`.
+3. **`kit/stamps.md`** — canonical models for every reference
+   stamp in the kit. Documents the shape of each model (cloud,
+   runtime, test, save, skill, agent, mode) and proposes models
+   for not-yet-stamped concepts (decisions, postmortems, tasks,
+   handoffs, audits). New doctrine file synced as
+   `.claude/stamps.md`.
+
+#### Added
+
+- **`kit/skills/runtime/`** — new skill with SKILL.md +
+  runtime.sh. Subcommands: `list`, `show`, `check`, `env`,
+  `preflight`. Uses python3 + PyYAML for YAML parsing (per
+  `script-craft.md`'s "Python only when bash is clumsy" policy).
+  Exit codes: 0 ready, 1 operational, 2 usage, 3 not ready.
+
+- **`kit/stamps.md`** — canonical reference-stamp model
+  registry. Three layers: universal conventions (field naming,
+  evolution rules), canonical models (one section per existing
+  stamp type), and proposed models for concepts not yet stamped.
+  The place skill authors look first when designing a new stamp
+  type.
+
+- **`env.template` and `env.environments` fields** on runtime
+  stamps. Existing simple `env.file: ".env"` stamps continue to
+  work — new fields are additive.
+
+#### Changed
+
+- **All four runtime templates** (`runtime-dev-server`,
+  `runtime-mobile-app`, `runtime-script`, `runtime-worker`)
+  gain the new env fields and demonstrate the named-profile
+  pattern in their bodies.
+
+- **Runtime template bodies** gain "First-time setup" steps
+  that include a preflight check
+  (`bash .claude/skills/runtime/runtime.sh check <name>`) and
+  document the `--env <profile>` flag for environment switching.
+
+#### Example diagnostic (from `runtime.sh check api`)
+
+```text
+runtime: api (dev-server, python)
+env file: .env (loaded)
+profile:  default
+
+env vars:
+  ✓ JWT_SECRET                       set (mysecret)
+  ✓ POSTGRES_DB_HOST                 set (192.168.1.6)
+  ✗ REDIS_DB_HOST                    NOT SET (required)
+  ✗ OPENAI_API_KEYS                  NOT SET (required)
+  · LOG_LEVEL                        not set (optional, default: 'INFO')
+
+dependencies:
+  ✓ postgres                         reachable
+  ✗ redis                            UNREACHABLE
+    └─ redis-cli ping
+       Could not connect to Redis at 127.0.0.1:6379: Connection refused
+
+VERDICT: NOT READY
+  - 2 required env vars missing
+  - 1 dependency unreachable
+```
+
+This is the actionable diagnostic that prevents the "I ran
+`python api.py` and got a Redis stack trace" surprise — the user
+sees exactly what's missing before booting.
+
+#### `stamps.md` — what's in it
+
+| Section | Content |
+|---|---|
+| Universal conventions | snake_case naming, ISO dates, evolution rules, common fields (`name`, `kind`, `tags`) |
+| Canonical models | cloud, runtime, test, save (model only — `save.sh` migration pending), skill, agent, mode |
+| Proposed models | decision, postmortem, task, handoff, audit (laid out before adoption) |
+| Adding a stamp | Five-step process for new stamp types |
+
+#### Compatibility
+
+- **Existing runtime stamps continue to work.** `env.file: ".env"`
+  is still valid. New fields (`env.template`, `env.environments`)
+  are additive.
+- **Save stamp model is documented but not yet adopted.** Current
+  `save.sh` emits blockquote-style metadata (`> **When.**`).
+  Migration to YAML frontmatter per the canonical model is targeted
+  for v0.20.0+.
+- **PyYAML dependency** — `runtime.sh check/env` requires PyYAML.
+  Script fails fast with a clear install instruction
+  (`pip install pyyaml`) if missing.
+
+#### Migration: adopting env profiles in existing stamps
+
+If your project has runtime stamps from v0.18.0 with just
+`env.file: ".env"`:
+
+1. Add `env.template: ".env-template"` if you have a committed
+   example file.
+2. Add `env.environments` if you want named profiles:
+   ```yaml
+   env:
+     template: .env-template
+     file: .env
+     environments:
+       local: .env
+       test: .env.test
+       production: .env.production
+     required: [...]
+   ```
+3. Run `bash .claude/skills/runtime/runtime.sh check <name>` to
+   see the new diagnostic in action.
+
+No skill ships that's forced to use the new fields. Backward
+compatibility is intact.
+
+---
+
 ## v0.18.0 — 2026-05-11
 
 ### `.claude/runtimes/` + `.claude/tests/` — reference stamps for local-dev + test scenarios
