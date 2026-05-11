@@ -168,6 +168,12 @@
         "note": "Claude Code settings scaffold — permissions, env vars, hooks, statusline. Empty structure so projects extend without inventing the shape. Project owns it after bootstrap; /sync never overwrites. Use /fewer-permission-prompts to auto-populate sensible read-only allows. Added in v0.13.0."
       },
       {
+        "from": "bootstrap/cloud.md.template",
+        "to": ".claude/clouds/_template.md",
+        "policy": "skip-if-exists",
+        "note": "Per-cloud setup template. Each cloud / deployment surface gets its own file at .claude/clouds/<name>.md following this shape — frontmatter (name, provider, kind, environments, pulls_from) + body (auth, commands, config files, gotchas). Filename starts with _ so it's a clear template, not a real cloud entry. Distinct from .claude/settings.json which configures the Claude Code harness — clouds files describe surfaces; settings.json describes how the harness behaves. Added in v0.16.0."
+      },
+      {
         "from": "bootstrap/welcome.md.template",
         "to": ".claude/welcome.md",
         "policy": "skip-if-exists",
@@ -219,7 +225,8 @@
       "docs/mvp",
       "docs/refinement",
       ".claude/tradeoffs",
-      ".claude/inbox"
+      ".claude/inbox",
+      ".claude/clouds"
     ]
   }
 }
