@@ -17,20 +17,31 @@ USAGE:
       Report whether SAVED.md exists, when last written, archive count.
 
   save.sh write <content-file> [--mode auto|archive|replace]
-      Write <content-file> into docs/saved/SAVED.md.
+      Write <content-file> into SAVED.md (path below).
       --mode auto     (default) archive existing SAVED.md if non-empty, then write
       --mode archive  force archive of existing SAVED.md before writing
                       (errors if SAVED.md is empty/missing)
       --mode replace  overwrite SAVED.md without archiving
 
   save.sh archive
-      Archive current SAVED.md to docs/saved/<YYYY-MM-DD-HHMM>.md,
+      Archive current SAVED.md to <saves-dir>/<YYYY-MM-DD-HHMM>.md,
       prepend an entry to TIMELINE.md. No new content written.
 
+  save.sh current-branch
+      Echo the current git branch (or "None" for detached HEAD).
+      Used by save.sh internally and exposed for /load.
+
 LAYOUT:
-  docs/saved/SAVED.md                Current snapshot.
-  docs/saved/TIMELINE.md             Newest-first index of archived snapshots.
-  docs/saved/<YYYY-MM-DD-HHMM>.md    Archived snapshots, sorted by timestamp.
+  Saves live in user-global space (not in the project repo):
+
+  ~/.claude/projects/<mangled-repo-key>/saves/
+    SAVED.md                Current snapshot.
+    TIMELINE.md             Newest-first index of archived snapshots.
+    <YYYY-MM-DD-HHMM>.md    Archived snapshots, sorted by timestamp.
+
+  The <mangled-repo-key> is the absolute path of the *main* repo
+  root with "/" replaced by "-" (e.g. -Users-chazzromeo-claude-kit).
+  All worktrees of the same project share one save state.
 
 TIMELINE entry format:
   - **<YYYY-MM-DD HH:MM>** — [<title>](<filename>)
@@ -45,11 +56,31 @@ EXIT CODES:
 EOF
 }
 
-repo_root() {
-  git rev-parse --show-toplevel 2>/dev/null || {
+# Resolve the *main* repo's working tree root, even when called from a
+# linked worktree. Uses --git-common-dir so all worktrees of one project
+# share a single save state under ~/.claude/projects/<key>/saves/.
+#
+# `cd -P` and `pwd -P` resolve symlinks physically, which is critical on
+# macOS where /tmp is a symlink to /private/tmp. Without this, the main
+# worktree and linked worktrees produce different project keys.
+project_root() {
+  local common_dir
+  common_dir="$(git rev-parse --git-common-dir 2>/dev/null)" || {
     echo "error: not inside a git repo" >&2
     return 1
   }
+  local abs_common
+  abs_common="$(cd -P "$common_dir" 2>/dev/null && pwd -P)" || return 1
+  dirname "$abs_common"
+}
+
+# Path-mangle the project root into a key for ~/.claude/projects/<key>/.
+# Matches the convention used by Claude Code's memory directory:
+# leading slashes become a leading hyphen.
+project_key() {
+  local root
+  root="$(project_root)" || return 1
+  echo "${root//\//-}"
 }
 
 # 0 iff file exists AND has at least one non-whitespace character.
@@ -67,6 +98,42 @@ extract_title() {
     echo "saved snapshot"
   else
     echo "$title"
+  fi
+}
+
+# Echo current branch name, or "None" if detached HEAD / no commits.
+current_branch() {
+  git symbolic-ref --short HEAD 2>/dev/null || echo "None"
+}
+
+# If <file> doesn't already have `> **Branch.** ...`, inject one based on
+# the current branch. Inserts after the last `> **...**` header line, or
+# appends to the end if no header block exists.
+inject_branch_if_missing() {
+  local f="$1"
+  if grep -q '^> \*\*Branch\.\*\*' "$f" 2>/dev/null; then
+    return 0
+  fi
+
+  local branch
+  branch="$(current_branch)"
+
+  if grep -q '^> \*\*' "$f" 2>/dev/null; then
+    awk -v branch="$branch" '
+      BEGIN { last_meta = 0 }
+      /^> \*\*/ { last_meta = NR }
+      { lines[NR] = $0 }
+      END {
+        for (i = 1; i <= NR; i++) {
+          print lines[i]
+          if (i == last_meta) {
+            print "> **Branch.** " branch
+          }
+        }
+      }
+    ' "$f" > "${f}.tmp" && mv "${f}.tmp" "$f"
+  else
+    printf '\n> **Branch.** %s\n' "$branch" >> "$f"
   fi
 }
 
@@ -108,7 +175,7 @@ EOF
   fi
 }
 
-# Archive SAVED.md → docs/saved/<stamp>.md, prepend TIMELINE entry.
+# Archive SAVED.md → <saves-dir>/<stamp>.md, prepend TIMELINE entry.
 # Caller MUST verify SAVED.md is non-empty first.
 # Echoes the archive path on success.
 do_archive() {
@@ -240,6 +307,7 @@ cmd_write() {
   fi
 
   cp "$content_file" "$saved_md"
+  inject_branch_if_missing "$saved_md"
 
   if [ -n "$archived" ]; then
     echo "wrote SAVED.md (archived previous → $(basename "$archived"))"
@@ -259,18 +327,19 @@ main() {
       ;;
   esac
 
-  local root
-  root="$(repo_root)" || return 1
-  local saved_dir="$root/docs/saved"
+  local key
+  key="$(project_key)" || return 1
+  local saved_dir="$HOME/.claude/projects/$key/saves"
   local saved_md="$saved_dir/SAVED.md"
   local timeline_md="$saved_dir/TIMELINE.md"
 
   mkdir -p "$saved_dir"
 
   case "$action" in
-    status)  cmd_status  "$saved_dir" "$saved_md" ;;
-    write)   cmd_write   "$saved_dir" "$saved_md" "$timeline_md" "$@" ;;
-    archive) cmd_archive "$saved_dir" "$saved_md" "$timeline_md" ;;
+    status)         cmd_status        "$saved_dir" "$saved_md" ;;
+    write)          cmd_write         "$saved_dir" "$saved_md" "$timeline_md" "$@" ;;
+    archive)        cmd_archive       "$saved_dir" "$saved_md" "$timeline_md" ;;
+    current-branch) current_branch ;;
     *)
       echo "error: unknown action: $action" >&2
       usage >&2
