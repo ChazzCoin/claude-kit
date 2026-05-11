@@ -20,6 +20,148 @@ human-readable rollback).
 
 ---
 
+## v0.16.0 — 2026-05-11
+
+### Auditor agent + `.claude/clouds/` structure
+
+Two structural changes worth flagging:
+
+1. **`/audit` becomes script-driven + uniform output.** `audit.sh`
+   handles deterministic scaffolding (header, library table, section
+   headers, severity scheme). The new `auditor` agent (`kit/agents/auditor.md`,
+   replaces the retired `code-reviewer` agent) handles judgment.
+   Same output shape every invocation.
+2. **`.claude/clouds/` directory** — one file per cloud / deployment
+   surface. Existing projects with cloud info in `CLAUDE.md` should
+   migrate; see the migration section below.
+
+#### Added
+
+- **`kit/agents/auditor.md`** — broader-scope auditor with lens
+  parameter (`code` / `docs` / `config` / `architecture` / `security` /
+  `mixed`). Read-only (Read/Glob/Grep/Bash diagnostic). Returns a
+  uniform structured audit body for the calling skill to wrap +
+  persist.
+
+- **`kit/skills/audit/audit.sh`** — scaffolding + persistence script
+  for `/audit`. Subcommands: `resolve` (scope info), `scaffold` (markdown
+  skeleton with `<to-fill>` placeholders), `validate` (sections + no
+  unfilled placeholders), `save` (writes to `docs/audits/<date>-<slug>.md`
+  with collision suffix), `lenses` (list). Top-of-script arrays
+  declare sections, severity tiers, lenses, manifest parsers, and
+  ignored paths — extend by editing the array.
+
+- **`bootstrap/cloud.md.template`** — per-cloud template. Each
+  surface gets a file at `.claude/clouds/<name>.md` with frontmatter
+  (name, provider, kind, environments, pulls_from) + body sections
+  (auth, commands, config files, gotchas, references). One template,
+  many surfaces. Frontmatter is machine-parseable for future skill
+  integration.
+
+- **`.claude/clouds/` scaffold directory** — added to MANIFEST so
+  fresh bootstraps get the dir.
+
+#### Changed
+
+- **`kit/skills/audit/SKILL.md`** — overhauled. The skill now
+  orchestrates: `audit.sh resolve` → invoke `auditor` agent →
+  `audit.sh validate` → `audit.sh save`. Adds an explicit
+  **Output policy** section (same load-bearing rule as `/status`'s):
+  AI passes the assembled audit to the user verbatim, no summary,
+  no preamble, no closing chat.
+
+- **`bootstrap/CLAUDE.md.template` `## Deploy` section** — now a
+  short overview + pointer to `.claude/clouds/`, not a prose blob.
+  This affects FRESH bootstraps only; existing projects keep their
+  old `## Deploy` content because the template is `skip-if-exists`.
+  Migration to the new structure is opt-in (see below).
+
+- **MANIFEST.json**:
+  - New bootstrap entry: `cloud.md.template` → `.claude/clouds/_template.md`
+    (skip-if-exists; the `_` prefix marks it as a template, not a
+    real cloud entry).
+  - New scaffold directory: `.claude/clouds/`.
+
+#### Removed
+
+- **`kit/agents/code-reviewer.md`** — retired. Its PR-review use case
+  folds into `auditor` invoked with `--lens code`. Severity scheme
+  unified on CRITICAL/HIGH/MEDIUM/LOW (was BLOCKER/WARN/NIT in
+  code-reviewer). If your skills called `code-reviewer` directly,
+  switch them to `auditor` with appropriate lens.
+
+#### Migrating cloud info from `CLAUDE.md` `## Deploy` → `.claude/clouds/`
+
+If your project has cloud / deploy details in CLAUDE.md, the new
+structure is strictly cleaner — especially for multi-cloud setups.
+**No skill is forcing this migration in v0.16.0** — `/release` and
+`/status` continue to read from CLAUDE.md as before. Migrate when
+ready.
+
+**Steps:**
+
+1. After `/sync` pulls v0.16.0, you'll have `.claude/clouds/_template.md`
+   and the empty `.claude/clouds/` directory. Verify with
+   `ls .claude/clouds/`.
+
+2. **For each cloud / deployment surface** mentioned in your CLAUDE.md
+   `## Deploy` (or scattered in Commands / Tech stack), create a
+   per-resource file at `.claude/clouds/<name>.md` following the
+   template. Naming convention: `<provider>-<service>[-<env>].md`,
+   e.g. `firebase-hosting.md`, `azure-acr.md`, `azure-aks-prod.md`.
+
+3. **Granularity:** one file per RESOURCE, not per provider. ACR
+   and AKS are distinct surfaces with distinct commands — separate
+   files, cross-referenced via the `pulls_from` frontmatter:
+
+   ```yaml
+   # In .claude/clouds/azure-aks-prod.md:
+   pulls_from: [azure-acr]
+   ```
+
+4. **Copy the relevant prose** from CLAUDE.md into each new file's
+   sections (Auth, Commands, Config files, Gotchas). The frontmatter
+   captures the machine-readable bits (project ID, region, environments).
+
+5. **Once everything has moved**, replace your CLAUDE.md `## Deploy`
+   section with a short overview + pointer to `.claude/clouds/`:
+
+   ```markdown
+   ## Deploy
+
+   Deploy targets and cloud surfaces are documented per-resource at
+   `.claude/clouds/<name>.md`. Run `ls .claude/clouds/` to see them.
+
+   <one-line overview of what this project deploys>
+   ```
+
+6. **Update `.claude/settings.json`** if you want auto-allow on
+   cloud CLI commands you use frequently (e.g. `firebase deploy:*`,
+   `az aks:*`, `kubectl rollout:*`). Distinct from cloud docs —
+   `settings.json` configures the *harness*; cloud files document
+   the *surfaces*.
+
+7. **Verify nothing's lost** — git diff your CLAUDE.md to confirm
+   what you trimmed lives in `.claude/clouds/` now.
+
+The kit does NOT automate this migration in v0.16.0. Future versions
+may ship a `/migrate-clouds` skill if the pattern proves valuable.
+
+#### Compatibility
+
+- **`/audit` output shape changes** — existing audits in `docs/audits/`
+  are unaffected (they're just files). New audits use the locked
+  structure. Anyone scripting against `/audit`'s output format
+  should review the new shape.
+- **`code-reviewer` agent removed** — `/sync` will surface this as
+  a "removed in kit" file. Confirm the deletion if no project
+  skills call it directly. If they do, switch the call to `auditor`.
+- **`.claude/clouds/` migration is opt-in** — existing CLAUDE.md
+  `## Deploy` sections continue to work in v0.16.0. v0.17.0+ may
+  start integrating `.claude/clouds/` into `/release` and `/status`.
+
+---
+
 ## v0.15.0 — 2026-05-10
 
 ### /status becomes script-driven + inbox surfaced

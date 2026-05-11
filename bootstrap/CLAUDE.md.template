@@ -212,9 +212,19 @@ and slug. The first line of the spec links back to the task file."}}
 
 ## Deploy
 
-{{HOW DEPLOY WORKS IN THIS PROJECT. Live URL, hosting service,
-named-site / project / environment specifics, who has access, where
-to find logs.}}
+Deploy targets and cloud surfaces are documented per-resource at
+`.claude/clouds/<name>.md`. One file per cloud / deployment surface
+(e.g. `firebase-hosting.md`, `azure-acr.md`, `azure-aks-prod.md`).
+Run `ls .claude/clouds/` to see what this project has.
+
+A short overview is fine here — what the project deploys at a high
+level — but the per-surface details (auth, commands, gotchas) live
+in `.claude/clouds/` so they're operable per-resource without scanning
+this whole file.
+
+{{ONE-LINE OVERVIEW: e.g. "Web frontend on Firebase Hosting; API on
+Azure AKS pulling images from Azure ACR." Detail in
+`.claude/clouds/`.}}
 
 ## Conventions
 
