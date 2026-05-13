@@ -181,6 +181,7 @@ Durable records — each writes to a typed location under `docs/`.
 | Skill | Purpose |
 |---|---|
 | `/release` | End-to-end production release orchestrator (delegates to platform skills) |
+| `/setup-deploy` | Interactive walkthrough that fills `build/` and `tests/` with project-specific deploy commands |
 
 ### Universal — coordination & hygiene
 
