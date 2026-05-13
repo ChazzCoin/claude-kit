@@ -20,6 +20,47 @@ human-readable rollback).
 
 ---
 
+## v0.21.1 — 2026-05-13
+
+### `/import-env` script-driven mechanics — values never enter AI context
+
+Hardens the v0.21.0 import flow. Adds `kit/skills/import-env/import-env.sh`
+(pure bash) and rewrites `SKILL.md` to route through it. The orchestrating
+skill no longer reads `.env*` files itself; the script does, and returns
+KEY names only.
+
+**Security guarantee:** values never leave the script. Every subcommand
+reads keys; values are discarded at the read line. No subcommand
+returns, logs, or echoes a value. Tested with a `.env` containing fake
+secrets — no value appears in any output.
+
+#### Added
+
+- `kit/skills/import-env/import-env.sh` — script-driven mechanics.
+  Subcommands:
+  - `parse <file>` — KEYs one per line (handles `export` prefix,
+    comments, blank lines, malformed lines)
+  - `diff <file>` — NEW / KNOWN / MISSING sets vs `env/stamps/`
+  - `suggest <KEY>` — heuristic defaults from var-name patterns
+    (`*_PASSWORD` → secret, `FEATURE_*` → feature-flag, etc.)
+  - `add <KEY> [opts]` — generate stamp at `env/stamps/<kebab>.md`
+  - `add-profile <KEY> <profile>` — append profile to `environments[]`
+  - `list` — tabulate existing stamps (filterable by required/group)
+  - `validate` — coverage check vs `.env-template`
+
+#### Changed
+
+- `kit/skills/import-env/SKILL.md` — rewritten to invoke
+  `import-env.sh` throughout. Never reads `.env*` directly.
+
+#### Doctrine
+
+Follows `script-craft.md`: script owns deterministic mechanics;
+SKILL.md owns content + choices. Matches the existing
+`save.sh` / `runtime.sh` pattern.
+
+---
+
 ## v0.21.0 — 2026-05-13
 
 ### Env-var registry — stamps + `ENV.md` + `/import-env`
