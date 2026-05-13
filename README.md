@@ -24,6 +24,7 @@ claude-kit/
 │   │   ├── task.md
 │   │   └── cleanup.md
 │   ├── task-rules.md             # universal execution rules
+│   ├── migration-rules.md        # database migration conventions
 │   ├── ios-task-rules.md         # iOS platform extensions
 │   ├── web-task-rules.md         # web platform extensions (placeholder)
 │   ├── ios-conventions.md        # iOS architectural reference
@@ -38,6 +39,7 @@ claude-kit/
 │   ├── wont-do.md.template       # anti-feature list
 │   ├── playlists.md.template     # curated skill chains
 │   ├── bookmarks.md.template     # path:line treasure map
+│   ├── MIGRATIONS.md.template    # database migrations log template
 │   └── foundation.json           # initial sync-tracking file
 ├── bin/
 │   └── init                      # bootstrap a target project
@@ -50,7 +52,12 @@ project that runs `/sync`.
 
 **`bootstrap/`** = one-time files. Init copies them once if they
 don't exist; they belong to the project after that and never get
-overwritten.
+overwritten. `migrations/MIGRATIONS.md` is created at init as a template
+that projects fill with their migration execution log.
+
+**`migrations/`** = folder structure for database migration scripts (SQL,
+Python, JavaScript, etc.), managed by the project. See `migration-rules.md`
+for conventions on naming, format, idempotency, and logging.
 
 ### Platform-prefix naming convention
 

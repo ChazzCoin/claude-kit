@@ -129,6 +129,12 @@
         "from": "kit/task-template.md",
         "to": ".claude/task-template.md",
         "policy": "file-replace"
+      },
+      {
+        "from": "kit/migration-rules.md",
+        "to": ".claude/migration-rules.md",
+        "policy": "file-replace",
+        "note": "Database migration conventions. Project-specific gates come from CLAUDE.md."
       }
     ]
   },
@@ -256,6 +262,11 @@
         "to": ".claude/vocabulary-overrides.md",
         "policy": "skip-if-exists",
         "note": "Project-specific vocabulary overrides. Skills resolve term meanings here first, falling back to kit defaults at .claude/vocabulary.md. Empty seed; project fills in only the terms it overrides (e.g. iOS projects override 'patch' due to the Apple build-number constraint)."
+      },
+      {
+        "from": "bootstrap/MIGRATIONS.md.template",
+        "to": "migrations/MIGRATIONS.md",
+        "policy": "skip-if-exists"
       }
     ]
   },
@@ -282,7 +293,8 @@
       ".claude/inbox",
       ".claude/clouds",
       ".claude/runtimes",
-      ".claude/tests"
+      ".claude/tests",
+      "migrations"
     ]
   }
 }
