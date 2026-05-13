@@ -197,6 +197,7 @@ Durable records — each writes to a typed location under `docs/`.
 | `/release` | End-to-end production release orchestrator (delegates to platform skills) |
 | `/setup-deploy` | Interactive walkthrough that fills `build/` and `tests/` with project-specific deploy commands |
 | `/import-env` | Parse an existing `.env*` file into env-var stamps under `env/stamps/`; one question per new var |
+| `/export-env` | Generate `.env-template` (or per-profile / per-runtime variant) from `env/stamps/`; inverse of `/import-env` |
 
 ### Universal — coordination & hygiene
 
