@@ -1,198 +1,236 @@
 ---
 name: import-env
-description: Parse an existing .env file into env-var stamps under env/stamps/. Walks each KEY=value line, drafts a stamp for any var without one, asks for required/optional/group/purpose interactively. Never reads values into stamps — only metadata. Triggered when the user wants to register their env vars — e.g. "/import-env", "import my .env file into stamps", "register env vars", "parse .env-local into stamps".
+description: Parse an existing .env file into env-var stamps under env/stamps/. The actual file reading is done by import-env.sh — values never enter the AI's context. The skill routes the script's KEY-only output through one-question-per-var confirmations. Triggered when the user wants to register their env vars — e.g. "/import-env", "import my .env file into stamps", "register env vars", "parse .env-local into stamps".
 ---
 
-# /import-env — Parse a `.env*` file into env-var stamps
+# /import-env — Bulk-import env vars into stamps
 
-Brings an existing project's env vars under the kit's env-stamp system. Reads a `.env*` file line by line, drafts a stamp for any var that doesn't have one yet, and asks the user to confirm the metadata. Values are **never** stored in stamps — only `var_name`, `group`, `required`, `purpose`, etc.
+Brings an existing project's env vars under the kit's env-stamp system. The mechanics (parse, diff, suggest defaults, generate stamp files) are owned by **`import-env.sh`**. This SKILL.md is the routing layer — it tells the AI which subcommands to run, when to ask the user a question, and what to put in the stamp.
 
-Pairs with `env-rules.md` (the stamp model and folder convention).
+**Security guarantee:** values never enter Claude's context. The script reads keys from `.env*` files; the AI never reads the file directly. Treat any flow that would expose a value as a bug.
+
+Pairs with `env-rules.md` (stamp model). Doctrine: `script-craft.md` — script owns deterministic mechanics, SKILL.md owns content + choices.
 
 ## Behavior contract
 
 ### Discover, don't assume
 
-Read in this order:
-
-1. `.claude/env-rules.md` — confirm the stamp model and conventions you're using.
-2. `env/stamps/` — list existing stamps so this run knows what's already registered.
-3. The target `.env*` file (path from user, or auto-detect — see below).
-4. `env/ENV.md` if it exists — to know existing group taxonomy.
-5. Project's runtime stamps (`.claude/runtimes/*.md`) — to know which runtimes might use a var (suggest `used_by.runtimes` from `env.required` arrays).
+1. Run `import-env.sh list` to see existing stamps.
+2. List candidate `.env*` files (`.env-template`, `.env`, `.env.test`, `.env.staging`, `.env.production`, etc.) — *but do not read them*.
+3. Read `env/ENV.md` if it exists (the project's narrative grouping).
+4. Read `.claude/runtimes/*.md` for cross-reference hints (which runtimes declare which `env.required` vars).
 
 ### Pick the source file
 
-Ask the user, with auto-detection as suggestions:
+Ask the user which `.env*` to import. List the files you see at project root (`ls .env*` is fine — `ls` doesn't reveal values). For each, get the line count via `wc -l <file>` to give a sense of size.
 
-> Which `.env*` file should I import from?
+> Which `.env*` should I parse?
 >
-> Detected files at project root:
-> - `.env-template` (committed reference) — 24 entries
-> - `.env` (local profile, gitignored) — 26 entries
-> - `.env.production` (production profile, gitignored) — 28 entries
+>   `.env-template`  — committed reference (24 lines)
+>   `.env.staging`   — gitignored profile (28 lines)
+>   `.env.production`— gitignored profile (30 lines)
 >
-> Pick one, or paste a path.
+> If picking a profile-specific file, I'll record that profile in each new stamp's `environments:` field.
 
-If the user picks a profile-specific file (e.g. `.env.production`), record that profile in each parsed stamp's `environments:` field. Multiple profiles can be imported in sequence — re-running on a different profile appends that profile name to existing stamps' `environments:` arrays.
+### Parse without reading values
 
-### Parse safely
+Run `import-env.sh parse <file>` — this returns one KEY per line, **no values**. That's the only file-read in the entire flow.
 
-Parse line by line. Skip:
-- Empty lines
-- Comment lines starting with `#`
-- Lines without `=`
-- Values (just read keys — never log or commit values)
+Then run `import-env.sh diff <file>` to split the keys into three sets:
+- **NEW** — in the file, no stamp yet → walk these one by one
+- **KNOWN** — in the file and already have stamps → maybe `add-profile` to record this profile
+- **MISSING** — stamps exist for vars not in this file → flag for review (might be deprecated, or this profile doesn't need them)
 
-For each `KEY=value`:
-- If `env/stamps/<kebab-name>.md` exists (or any stamp with `var_name: KEY`), this var is already registered → only update `environments:` if needed
-- Else, draft a new stamp
+### Walk new vars
 
-**Never echo values to the user or to logs.** The skill should never display the right-hand side of `=`. If a screen reader / accessibility helper might catch it, mask with `***`.
+For each KEY in the NEW set:
 
-### Ask one question per var
-
-For new vars, walk one at a time:
+1. Run `import-env.sh suggest <KEY>` — gets heuristic defaults (`group`, `purpose`, `type`, `required`).
+2. Check `.claude/runtimes/*.md` for any runtime declaring `env.required: [..., $KEY, ...]` — surface as a `--used-by-runtimes` hint.
+3. Present to user:
 
 ```
-Var 3 of 12: POSTGRES_HOST
+Var 3 of 12: POSTGRES_PASSWORD
 
-  Detected: var_name=POSTGRES_HOST
-  Runtime hint: used by `api` runtime (from .claude/runtimes/api.md env.required)
-  Profile: .env.production → environments includes 'production'
-
-  Required?           [yes (won't boot without it) / no (optional feature)]
-  Group?              [database/postgres (suggested) / other]
-  Purpose?            [connection / credential / feature-flag / config / secret / url / derived]
-  Type?               [string / int / bool / url / list / json]
-  Description?        (one line — what is this var for?)
+  Suggested:
+    group:       database/postgres
+    purpose:     secret   (auto-detected from "_PASSWORD" suffix)
+    type:        string
+    required:    true     (default — confirm if it's actually optional)
+  
+  Runtime cross-ref: used by `api` runtime (.claude/runtimes/api.md env.required)
+  
+  Confirm / edit:
+    required?    [yes / no / not sure]
+    group?       (current: database/postgres) — accept / change?
+    purpose?     (current: secret) — accept / change?
+    type?        (current: string) — accept / change?
+    description? (one line — what is this var for?)
 ```
 
-Suggest defaults based on the var name:
-- `*_HOST`, `*_PORT`, `*_URL`, `*_ENDPOINT` → `purpose: connection`
-- `*_USER`, `*_USERNAME` → `purpose: credential`
-- `*_PASSWORD`, `*_TOKEN`, `*_SECRET`, `*_KEY`, `*_API_KEY` → `purpose: secret`
-- Starts with `FEATURE_`, `ENABLE_`, `DISABLE_` → `purpose: feature-flag`, `type: bool`
-- `LOG_*`, `DEBUG_*` → `purpose: config`
-- Default to `required: true` unless the user explicitly says optional
+Defaults from `suggest` are accept-or-edit. Don't auto-write — always confirm.
 
-Group suggestions:
-- `POSTGRES_*` → `database/postgres`
-- `MYSQL_*`, `MARIADB_*` → `database/mysql`
-- `MONGO*` → `database/mongodb`
-- `REDIS_*` → `database/redis`
-- `CHROMA_*` → `database/chromadb`
-- `OPENAI_*`, `ANTHROPIC_*`, `STRIPE_*`, `TWILIO_*` → `external-apis/<provider>`
-- `JWT_*`, `OAUTH_*`, `AUTH_*`, `SESSION_*` → `auth/<scheme>`
-- `AWS_*`, `AZURE_*`, `GCP_*`, `GOOGLE_*` → `cloud/<provider>`
-- `FEATURE_*`, `ENABLE_*`, `DISABLE_*` → `feature-flags`
-- `LOG_*`, `SENTRY_*`, `DATADOG_*`, `OTEL_*` → `logging`
-- Anything else → ask the user
+4. Run `import-env.sh add <KEY> --required <bool> --group <path> --purpose <enum> --type <enum> --description "..." --environments <profile> --used-by-runtimes <list>` to generate the stamp.
 
-Always confirm — never auto-write a stamp without user assent.
+The script writes `env/stamps/<kebab-name>.md`, stages it with `git add` is NOT done by the script — leave it as an untracked file so the user can review.
 
-### Bulk mode
+Actually let the user know they can run `git add env/stamps/` at the end.
 
-For large `.env` files, offer:
+### Bulk mode for large files
 
-> 47 new vars to register. Want to:
->   (1) Go one by one (recommended for the first pass)
->   (2) Bulk-confirm groups (I'll show 8 detected groups, you accept/edit each batch)
->   (3) Accept all suggestions (fast, generates drafts you can edit after)
+If NEW set has > 10 entries, offer:
 
-Bulk mode still generates per-var stamps; it just trusts the heuristic defaults more.
+> 23 new vars to register. Want to:
+>   (1) Go one by one (recommended for the first run — establishes the taxonomy)
+>   (2) Group-batch (I'll show 5 detected groups, you confirm/edit each batch)
+>   (3) Accept all `suggest` defaults (fast, generates drafts you can edit after)
 
-### Write incrementally
+Bulk mode still calls `add` per-var; it just doesn't pause on each one.
 
-After each var is confirmed:
+For mode (3), after generating all stamps, surface which ones got `description: TODO — describe` so the user can sweep them.
 
-1. Write `env/stamps/<kebab-name>.md` with the YAML frontmatter and a body stub
-2. `git add` the new stamp
-3. Move to the next var
+### KNOWN vars — record the profile
 
-**Never auto-commit.** Kit convention: leave changes staged for human review.
+For each KEY in the KNOWN set, if the current profile isn't in the stamp's `environments:`, offer:
+
+> Found these vars already stamped but missing the `<profile>` profile:
+>   - JWT_SECRET (currently: local, staging — missing production)
+>   - SENTRY_DSN (currently: local — missing production)
+>
+> Add `<profile>` to their environments arrays? [yes / no / pick-by-one]
+
+If yes, run `import-env.sh add-profile <KEY> <profile>` for each.
+
+To know what each stamp's current environments are, parse the stamp's frontmatter (the AI can read the file — it's metadata, no values). Or use `import-env.sh list` and grep — but list doesn't print environments[] yet, so use direct file read.
+
+### MISSING vars — flag for review
+
+For each KEY in the MISSING set (stamp exists, not in this `.env*`):
+
+> Stamps exist for these vars, but they're not in `<profile>` profile:
+>   - OLD_FEATURE_X
+>   - DEPRECATED_TOKEN
+>
+> Possible explanations:
+>   1. This profile doesn't use them (expected — leave the stamp alone)
+>   2. They've been retired (consider flipping `status: retired` in the stamp)
+>   3. They should be in this profile but aren't yet (the deploy will fail when needed)
+>
+> Want me to drop into option 2 (mark as retired) for any?
+
+Don't decide; surface.
 
 ### Update ENV.md (optional)
 
-After all vars are processed, offer:
+After all vars are processed:
 
-> Update `env/ENV.md` with new entries grouped by their `group:` field? [yes / no / show-me-first]
+> Update `env/ENV.md` with new entries grouped by their `group:` field?
+> [yes / no / show-me-first]
 
-If yes: re-render `ENV.md` from all stamps, preserving any project-authored body text outside the auto-generated groups.
+If yes:
+- Read all stamps (`import-env.sh list` gives the table)
+- Group by their `group:` field
+- Render an `ENV.md` rollup that preserves any project-authored prose outside the auto-generated groups
+
+The AI can write this directly — no values involved.
 
 ### Resume gracefully
 
-If `/import-env` is invoked again later (e.g. after adding new vars to `.env`), the skill:
-- Re-parses the file
-- Skips vars that already have stamps
-- Adds the current profile name to existing stamps' `environments:` if not already listed
-- Walks the user through any new vars only
+`/import-env` is safe to re-run. The script's `diff` subcommand identifies what's new vs known, so the second run on the same file is a no-op (or just adds the profile to already-stamped vars).
 
 ### Surface unknowns honestly
 
-If a var name doesn't match any heuristic and the user can't articulate the purpose:
-- Don't make one up
-- Set `purpose: config` (the most neutral)
-- Write `description: TODO — figure out what this is for`
-- Flag it in the final report ("3 vars marked TODO — investigate before relying on these stamps")
+If the suggest defaults don't fit and the user doesn't know what a var is for:
+- Use `import-env.sh add` with `--description "TODO — figure out what this is for"`
+- `--purpose config` (the most neutral)
+- `--required true` (safer — forces investigation later)
+- Flag the TODO in the final summary
 
 ## Output structure
 
 When the skill finishes, render:
 
 ```markdown
-## ✓ Env vars imported from .env.production
+## ✓ Env vars imported from .env.staging
 
-**Source:** `.env.production`
-**Profile recorded:** production
+**Source:** `.env.staging`
+**Profile recorded:** staging
+**Mode:** one-by-one
 
 ### Stamps created (12)
 
-- `env/stamps/postgres-host.md` (required, connection)
-- `env/stamps/postgres-password.md` (required, **secret**)
-- `env/stamps/chromadb-host.md` (required, connection)
-- `env/stamps/openai-api-key.md` (required, **secret**)
-- `env/stamps/log-level.md` (optional, config — default `info`)
-- ...
+- `env/stamps/postgres-host.md` — required, connection
+- `env/stamps/postgres-password.md` — required, **secret**
+- `env/stamps/chromadb-host.md` — required, connection
+- `env/stamps/openai-api-key.md` — required, **secret**
+- `env/stamps/log-level.md` — optional, config (default `info`)
+- ... (7 more)
 
 ### Stamps updated (3)
 
-Existing stamps with `production` added to their `environments:` array:
+`staging` profile added to existing stamps:
 - `env/stamps/jwt-secret.md`
 - `env/stamps/sentry-dsn.md`
 - `env/stamps/feature-new-checkout.md`
 
-### Skipped (2)
+### TODOs flagged (2)
 
-Lines that couldn't be parsed:
+These got `description: TODO — describe` — please review:
+- `env/stamps/x-internal-token.md`
+- `env/stamps/legacy-config-flag.md`
+
+### Skipped lines
+
 - Line 14: malformed (missing `=`)
 - Line 31: comment
 
 ### Next steps
 
-1. Review the diff: `git diff --staged env/stamps/`
-2. Inspect TODO descriptions: `grep -l 'TODO' env/stamps/*.md`
-3. Update `env/ENV.md` to reflect new groupings (re-run with `--update-env-md` or edit by hand)
-4. Commit: `git commit -m "chore: import env vars from .env.production into stamps"`
+1. Review the diff: `git diff env/stamps/`
+2. Sweep TODOs: `grep -l 'TODO — describe' env/stamps/*.md`
+3. Update `env/ENV.md` to reflect new groupings (re-run with the rollup step, or edit by hand)
+4. Stage + commit: `git add env/stamps/ && git commit -m "chore: import env vars from .env.staging into stamps"`
 ```
 
 ## What this skill does NOT do
 
-- **Never reads values into stamps.** Only var names and metadata.
-- **Never echoes values.** Even in error messages.
-- **Never auto-commits.** Stages stamps for human review.
-- **Doesn't write the `.env*` files.** Only reads them.
-- **Doesn't enforce stamp model schema.** Drafts a best-effort stamp; user reviews and edits.
+- **Never reads values into Claude's context.** All file reads go through `import-env.sh` which returns KEYs only.
+- **Never echoes values.** Even in error messages or summaries.
+- **Never auto-commits.** Stamps are untracked files after generation; user stages and commits.
+- **Never writes to `.env*` files.** Only reads (via the script) and writes to `env/stamps/`.
+- **Never enforces the stamp model schema.** Best-effort drafts; user reviews and edits.
+
+## Script reference (`import-env.sh`)
+
+The skill calls these subcommands. See `import-env.sh help` for full details.
+
+```sh
+import-env.sh parse <file>                    # KEYs, one per line
+import-env.sh diff <file>                     # NEW / KNOWN / MISSING sets
+import-env.sh suggest <KEY>                   # heuristic defaults (key=value lines)
+import-env.sh add <KEY> [opts]                # generate stamp
+import-env.sh add-profile <KEY> <profile>     # append profile to environments[]
+import-env.sh list [--required-only] [--group <pat>]   # tabulate existing stamps
+import-env.sh validate                        # coverage check against .env-template
+```
+
+`add` flags: `--required`, `--group`, `--purpose`, `--type`, `--default`, `--description`, `--environments`, `--used-by-runtimes`, `--used-by-clouds`, `--tags`, `--force`.
+
+All subcommands exit:
+- `0` success
+- `1` operational error
+- `2` usage error
+- `3` validation failed (validate only)
 
 ## When to invoke this skill
 
-- New project, has existing `.env` files, no stamps yet — bulk import all at once
-- Existing project, added a few new vars to `.env`, want to register them — incremental run
+- New project with existing `.env*` files, no stamps yet — bulk import
+- Existing project, added vars to `.env`, want to register them — incremental
 - Migrating from another env-management system to the kit's stamp model
-- Auditing — running on `.env.production` to see what's been added since the last run
+- Auditing — running on `.env.production` to surface drift from local
 
-If a project has no `.env*` files at all, this skill has nothing to import. Write stamps by hand (see `env-rules.md` for the template).
+If a project has no `.env*` files, this skill has nothing to import. Write stamps by hand via `import-env.sh add` directly, or copy the example from `env-rules.md`.
 
 ---
 
-**See also:** `env-rules.md` (full stamp model and conventions), `stamps.md` (universal stamp pattern), `setup-deploy` (related interactive setup skill).
+**See also:** `env-rules.md` (full stamp model and conventions), `stamps.md` (universal stamp pattern), `script-craft.md` (doctrine: script owns mechanics, SKILL.md owns choices).
