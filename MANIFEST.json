@@ -135,6 +135,66 @@
         "to": ".claude/migration-rules.md",
         "policy": "file-replace",
         "note": "Database migration conventions. Project-specific gates come from CLAUDE.md."
+      },
+      {
+        "from": "kit/pipeline-rules.md",
+        "to": ".claude/pipeline-rules.md",
+        "policy": "file-replace",
+        "note": "Platform-agnostic pipeline conventions (stages, gates, args, environments)."
+      },
+      {
+        "from": "kit/test-rules.md",
+        "to": ".claude/test-rules.md",
+        "policy": "file-replace",
+        "note": "Test stamp model and suite-as-gate conventions. See also: stamps.md."
+      },
+      {
+        "from": "kit/build/deploy",
+        "to": "build/deploy",
+        "policy": "file-replace",
+        "note": "Universal pipeline entry point. --env required, no defaults."
+      },
+      {
+        "from": "kit/build/stages/",
+        "to": "build/stages/",
+        "policy": "directory-mirror",
+        "note": "Numbered stage scripts (10-preflight, 20-build, 30-test, 40-publish, 50-deploy)."
+      },
+      {
+        "from": "kit/build/gates/",
+        "to": "build/gates/",
+        "policy": "directory-mirror",
+        "note": "Reusable check scripts (git-clean, tag-matches, approval)."
+      },
+      {
+        "from": "kit/build/environments/",
+        "to": "build/environments/",
+        "policy": "directory-mirror",
+        "note": "Per-environment env.sh + deploy.sh. Kit ships the 'example' folder as a template — projects copy per env."
+      },
+      {
+        "from": "kit/tests/suites/",
+        "to": "tests/suites/",
+        "policy": "directory-mirror",
+        "note": "Named test suites that gate pipeline stages."
+      },
+      {
+        "from": "kit/tests/container/",
+        "to": "tests/container/",
+        "policy": "directory-mirror",
+        "note": "Container greenlight: validate-image, run-local, check-logs."
+      },
+      {
+        "from": "kit/tests/stamps/",
+        "to": "tests/stamps/",
+        "policy": "directory-mirror",
+        "note": "Kit-shipped test stamps (e.g. container-greenlight). Project-authored stamps live alongside."
+      },
+      {
+        "from": "kit/tests/scripts/",
+        "to": "tests/scripts/",
+        "policy": "directory-mirror",
+        "note": "Fallback test scripts for projects without a native test framework."
       }
     ]
   },
@@ -267,6 +327,24 @@
         "from": "bootstrap/MIGRATIONS.md.template",
         "to": "migrations/MIGRATIONS.md",
         "policy": "skip-if-exists"
+      },
+      {
+        "from": "bootstrap/TESTS.md.template",
+        "to": "tests/TESTS.md",
+        "policy": "skip-if-exists",
+        "note": "Test stamp registry — appended over time."
+      },
+      {
+        "from": "bootstrap/pipeline-config.toml.template",
+        "to": "build/pipeline-config.toml",
+        "policy": "skip-if-exists",
+        "note": "Project pipeline config (env list, project type, hooks). Filled by /setup-deploy."
+      },
+      {
+        "from": "bootstrap/deploy-log.md.template",
+        "to": "build/deploy-log.md",
+        "policy": "skip-if-exists",
+        "note": "Append-only deploy log — every ./build/deploy run records a row."
       }
     ]
   },
@@ -294,7 +372,12 @@
       ".claude/clouds",
       ".claude/runtimes",
       ".claude/tests",
-      "migrations"
+      "migrations",
+      "build",
+      "tests",
+      "tests/stamps",
+      "tests/suites",
+      "tests/scripts"
     ]
   }
 }

@@ -14,7 +14,7 @@ templates that work across any repo, any language, any platform.
 
 ```
 claude-kit/
-├── kit/                          # synced into target's .claude/
+├── kit/                          # synced into target's .claude/ and build/, tests/, etc.
 │   ├── skills/                   # slash commands
 │   │   ├── audit/                #   universal
 │   │   ├── …                     #   (more universal)
@@ -25,6 +25,18 @@ claude-kit/
 │   │   └── cleanup.md
 │   ├── task-rules.md             # universal execution rules
 │   ├── migration-rules.md        # database migration conventions
+│   ├── pipeline-rules.md         # CI/CD pipeline conventions (platform-agnostic)
+│   ├── test-rules.md             # test stamp model + suite-as-gate conventions
+│   ├── build/                    # deploy pipeline scaffolding
+│   │   ├── deploy                #   universal entry point (executable)
+│   │   ├── stages/               #   ordered stage scripts (10..50)
+│   │   ├── gates/                #   reusable checks (git-clean, approval, ...)
+│   │   └── environments/example/ #   per-env template (env.sh + deploy.sh)
+│   ├── tests/                    # test scaffolding
+│   │   ├── suites/               #   named test suites (pre-deploy, etc.)
+│   │   ├── stamps/               #   kit-shipped test stamps (e.g. container-greenlight)
+│   │   ├── container/            #   container greenlight scripts
+│   │   └── scripts/              #   fallback test scripts (no native framework)
 │   ├── ios-task-rules.md         # iOS platform extensions
 │   ├── web-task-rules.md         # web platform extensions (placeholder)
 │   ├── ios-conventions.md        # iOS architectural reference
@@ -40,6 +52,9 @@ claude-kit/
 │   ├── playlists.md.template     # curated skill chains
 │   ├── bookmarks.md.template     # path:line treasure map
 │   ├── MIGRATIONS.md.template    # database migrations log template
+│   ├── TESTS.md.template         # test stamp registry template
+│   ├── pipeline-config.toml.template  # project pipeline config
+│   ├── deploy-log.md.template    # appended-to log of every deploy
 │   └── foundation.json           # initial sync-tracking file
 ├── bin/
 │   └── init                      # bootstrap a target project
@@ -58,6 +73,25 @@ that projects fill with their migration execution log.
 **`migrations/`** = folder structure for database migration scripts (SQL,
 Python, JavaScript, etc.), managed by the project. See `migration-rules.md`
 for conventions on naming, format, idempotency, and logging.
+
+**`build/`** = platform-agnostic deploy pipeline. Universal vocabulary:
+**stages** (numbered scripts in `build/stages/`), **gates** (reusable
+checks in `build/gates/`), **args** (`--env`, `--tag`, `--skip-tests`,
+etc.), and **environments** (one folder per env under `build/environments/`,
+each with `env.sh` + `deploy.sh`). The entry point is `./build/deploy
+--env=<env>` — `--env` is always required, never defaulted. After
+`/setup-deploy` fills in the project-specific commands, deploys are
+dumb shell calls — no AI reasoning at run time. See `pipeline-rules.md`.
+
+**`tests/`** = first-class test infrastructure. Tests live where their
+native framework wants them (XCTest in Xcode, jest alongside source,
+pytest in `tests/`, scripts under `tests/scripts/`); the kit references
+them via **stamps** (`tests/stamps/<dated>.md`) with frontmatter declaring
+where the test lives and how to run it. **Suites** (`tests/suites/<name>.md`)
+group stamps into pipeline gates — `30-test.sh` runs the suite matching
+the deploy env. Container projects get a built-in **greenlight** pattern
+(validate → run-local → check-logs) under `tests/container/`. See
+`test-rules.md` for the stamp model.
 
 ### Platform-prefix naming convention
 
