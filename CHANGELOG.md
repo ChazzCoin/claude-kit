@@ -20,6 +20,96 @@ human-readable rollback).
 
 ---
 
+## v0.20.0 — 2026-05-13
+
+### Deploy pipeline + test infrastructure + `/setup-deploy`
+
+Three closely-tied additions that give every kit-enabled project a
+universal, platform-agnostic CI/CD scaffold plus first-class test
+archival. After running `/setup-deploy`, deploys are dumb shell calls
+(`./build/deploy --env=<env>`) — no AI reasoning at run time.
+
+1. **Migrations system** — `migrations/` folder, `migration-rules.md`,
+   `MIGRATIONS.md` registry. Date-sequence naming
+   (`YYYYMMDD_NNN_slug.sql`), atomic / idempotent / reversible /
+   immutable discipline, language-agnostic (SQL, Python, JS, etc.).
+2. **Deploy pipeline** — `build/` scaffolding with universal
+   vocabulary: **stages** (numbered scripts), **gates** (reusable
+   checks), **args** (`--env`, `--tag`, `--skip-tests`, `--dry-run`),
+   **environments** (one folder per env). `--env` is always required,
+   never defaulted. `pipeline-rules.md` documents the model.
+3. **Test infrastructure** — `tests/` scaffolding mirroring the
+   migrations + stamps patterns. Tests live where their native
+   framework wants them; the kit references them via stamps in
+   `tests/stamps/<dated>.md`. Suites in `tests/suites/<name>.md`
+   group stamps for pipeline gates. Container projects get a
+   built-in **greenlight** pattern (validate-image → run-local →
+   check-logs) under `tests/container/`. `test-rules.md` documents
+   the test + test-suite stamp models.
+4. **`/setup-deploy` skill** — interactive walkthrough that detects
+   project type, asks one question at a time, and fills in the
+   scaffolding with project-specific commands. Stages changes for
+   git review; never auto-commits. Resumes gracefully on a
+   partially-configured project.
+
+#### Added (synced)
+
+- **`kit/migration-rules.md`** — database migration conventions.
+- **`kit/pipeline-rules.md`** — platform-agnostic pipeline doctrine.
+  Documents stages/gates/args/environments vocabulary.
+- **`kit/test-rules.md`** — test stamp model, suite-as-gate
+  pattern, container greenlight.
+- **`kit/build/deploy`** — universal pipeline entry script.
+  Requires `--env`, sources `environments/<env>/env.sh`, runs
+  numbered stages, delegates final step to env-specific
+  `deploy.sh`, appends to `deploy-log.md`.
+- **`kit/build/stages/`** — `10-preflight.sh`, `20-build.sh`,
+  `30-test.sh`, `40-publish.sh`, `50-deploy.sh`. The test stage
+  parses a suite's frontmatter and runs each member test's
+  `run_command`.
+- **`kit/build/gates/`** — `git-clean.sh`, `tag-matches.sh`,
+  `approval.sh`. Approval requires explicit `yes` (case-insensitive);
+  bypassable in CI via `FORCE_APPROVAL=1`.
+- **`kit/build/environments/example/`** — `env.sh` + `deploy.sh`
+  template. Projects copy per real environment.
+- **`kit/tests/suites/pre-deploy.md`** — default test suite stamp
+  with empty `tests: []` for projects to fill.
+- **`kit/tests/container/`** — `greenlight.sh`, `validate-image.sh`,
+  `run-local.sh`, `check-logs.sh`. The greenlight composes the
+  three checks; pass = deploy proceeds.
+- **`kit/tests/stamps/container-greenlight.md`** — test stamp
+  wireable into any suite.
+- **`kit/tests/scripts/`** — placeholder folder for fallback test
+  scripts (projects without a native test framework).
+- **`kit/skills/setup-deploy/SKILL.md`** — interactive setup skill.
+
+#### Bootstrap (one-time)
+
+- `bootstrap/MIGRATIONS.md.template` → `migrations/MIGRATIONS.md`
+- `bootstrap/TESTS.md.template` → `tests/TESTS.md`
+- `bootstrap/pipeline-config.toml.template` → `build/pipeline-config.toml`
+- `bootstrap/deploy-log.md.template` → `build/deploy-log.md`
+
+#### Scaffold dirs
+
+`migrations/`, `build/`, `tests/`, `tests/stamps/`, `tests/suites/`,
+`tests/scripts/`.
+
+#### Design notes
+
+- **Approval gates are platform-native, not template logic.**
+  Production environments configure approvers in their CI platform
+  (Azure DevOps Environments, GitHub Environments, etc.) or via the
+  kit's `gates/approval.sh` for interactive deploys.
+- **Test stamps don't move tests.** XCTest stays in Xcode, jest
+  stays alongside source, pytest stays in `tests/`. The stamp is
+  metadata — `location` + `run_command` fields.
+- **Tasks need tests** is documented in `test-rules.md` as a rule
+  but not enforced. Enforcement (e.g. `/task done` refusing without
+  a stamp) is opt-in later.
+
+---
+
 ## v0.19.0 — 2026-05-11
 
 ### `/runtime` preflight + named env profiles + `stamps.md` doctrine
