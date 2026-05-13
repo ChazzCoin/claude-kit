@@ -27,6 +27,7 @@ claude-kit/
 │   ├── migration-rules.md        # database migration conventions
 │   ├── pipeline-rules.md         # CI/CD pipeline conventions (platform-agnostic)
 │   ├── test-rules.md             # test stamp model + suite-as-gate conventions
+│   ├── env-rules.md              # env-var stamp model + profile convention + secret discipline
 │   ├── build/                    # deploy pipeline scaffolding
 │   │   ├── deploy                #   universal entry point (executable)
 │   │   ├── stages/               #   ordered stage scripts (10..50)
@@ -53,6 +54,7 @@ claude-kit/
 │   ├── bookmarks.md.template     # path:line treasure map
 │   ├── MIGRATIONS.md.template    # database migrations log template
 │   ├── TESTS.md.template         # test stamp registry template
+│   ├── ENV.md.template           # env-var rollup template
 │   ├── pipeline-config.toml.template  # project pipeline config
 │   ├── deploy-log.md.template    # appended-to log of every deploy
 │   └── foundation.json           # initial sync-tracking file
@@ -92,6 +94,18 @@ group stamps into pipeline gates — `30-test.sh` runs the suite matching
 the deploy env. Container projects get a built-in **greenlight** pattern
 (validate → run-local → check-logs) under `tests/container/`. See
 `test-rules.md` for the stamp model.
+
+**`env/`** = environment-variable registry. One YAML-frontmatter stamp
+per env var under `env/stamps/`, recording `var_name`, `group`,
+`required`/optional, `purpose` (connection / credential / feature-flag /
+config / secret / url / derived), `used_by` (which runtime/cloud stamps),
+and `environments` (which profiles set it). **No values** — only
+metadata. `env/ENV.md` is a human-readable rollup grouped by domain
+(database, auth, external-apis, etc.). Profile files at project root
+follow the kit's dotenv convention: `.env-template` (committed
+reference), `.env` (local), `.env.test`, `.env.staging`, `.env.production`.
+Use `/import-env` to bulk-parse an existing `.env*` into stamps. See
+`env-rules.md` for the full model.
 
 ### Platform-prefix naming convention
 
@@ -182,6 +196,7 @@ Durable records — each writes to a typed location under `docs/`.
 |---|---|
 | `/release` | End-to-end production release orchestrator (delegates to platform skills) |
 | `/setup-deploy` | Interactive walkthrough that fills `build/` and `tests/` with project-specific deploy commands |
+| `/import-env` | Parse an existing `.env*` file into env-var stamps under `env/stamps/`; one question per new var |
 
 ### Universal — coordination & hygiene
 

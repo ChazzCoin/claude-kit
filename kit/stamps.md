@@ -154,6 +154,38 @@ endpoint can read the test's script as a reference implementation.
 
 ---
 
+## Stamp: env-var
+
+**Where it lives:** `env/stamps/<name>.md`
+**Purpose:** Declare a single environment variable the project uses — what it is, who needs it, which profiles set it. Never the value.
+**Shipped in:** v0.21.0
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `name` | yes | string (kebab-case) | Stamp identity. Matches filename. |
+| `kind` | yes | const `env-var` | Stamp discriminator. |
+| `var_name` | yes | string (SCREAMING_SNAKE_CASE) | The actual env var name as it appears in `.env*` files. |
+| `group` | yes | string (slash-path) | Hierarchical group for `ENV.md` rollup (`database/postgres`, `auth/jwt`, `feature-flags`, etc.). |
+| `required` | yes | bool | `true` = system won't boot without it. `false` = enables/disables an optional feature. |
+| `purpose` | yes | enum | connection / credential / feature-flag / config / secret / url / derived |
+| `description` | yes | string (one line) | What this var represents. |
+| `type` | yes | enum | string / int / bool / url / list / json |
+| `default` | depends on `required` | scalar/null | Default value if `required: false`; `null` if required. |
+| `used_by.runtimes` | yes | array | Names of runtime stamps that depend on this var. |
+| `used_by.clouds` | yes | array | Names of cloud stamps that depend on this var. |
+| `environments` | yes | array | Profile names this var should be set in (`[local, test, staging, production]` — must match runtime stamp `env.environments` keys). |
+| `created` | yes | date (YYYY-MM-DD) | When the stamp was created. |
+| `status` | yes | enum | active / deprecated / retired |
+| `tags` | no | array | Free-form classification. |
+
+The `purpose: secret` flag carries the strongest treatment (never logged, never echoed, aggressive rotation). The `credential` vs `secret` distinction is intentional — credentials are user-facing identifiers (often paired with passwords); secrets are the actual sensitive material.
+
+Body of the stamp covers context: production source (which 1Password vault / Key Vault path), rotation policy, related vars, edge cases. See `env-rules.md` for the full convention.
+
+The `var_name` ↔ runtime stamp `env.required` link is by name, not enforced. Drift surfaces via a future `env/env.sh validate` script.
+
+---
+
 ## Stamp: save
 
 **Where it lives:** `~/.claude/projects/<key>/saves/SAVED.md` (current) and `<YYYY-MM-DD-HHMM>.md` (archived)
