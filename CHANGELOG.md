@@ -20,6 +20,68 @@ human-readable rollback).
 
 ---
 
+## v0.21.0 — 2026-05-13
+
+### Env-var registry — stamps + `ENV.md` + `/import-env`
+
+Adds first-class env-var management to the kit. Every env var a project
+uses gets a YAML-frontmatter stamp under `env/stamps/`. **No values** —
+only metadata: `var_name`, `group`, `required`/optional, `purpose`,
+`used_by` (which runtime/cloud stamps depend on it), `environments`
+(which profile files set it).
+
+`env/ENV.md` is a human-readable rollup grouped by domain (database,
+auth, external-apis, feature-flags, etc.). Profile files at project
+root follow the kit's existing runtime-stamp dotenv convention:
+`.env-template` (committed reference) + `.env` (local) +
+`.env.<profile>` (named profiles like test, staging, production).
+
+#### Added (synced)
+
+- **`kit/env-rules.md`** — conventions, full stamp model, profile
+  naming, secret discipline. Documents the `purpose` taxonomy
+  (connection / credential / feature-flag / config / secret / url /
+  derived) and the `credential` vs `secret` distinction.
+- **`kit/stamps.md`** — added the `env-var` stamp model entry.
+- **`kit/skills/import-env/SKILL.md`** — interactive bulk-import
+  skill. Parses a `.env*` file line by line, drafts a stamp for any
+  unregistered var, asks `required` / `group` / `purpose` / `type` /
+  description per var. **Never reads values into stamps; never
+  echoes values.** Suggests defaults from var-name heuristics
+  (`*_HOST` → connection, `*_PASSWORD` → secret, `FEATURE_*` →
+  feature-flag, etc.). Supports bulk mode for large `.env` files.
+
+#### Bootstrap (one-time)
+
+- `bootstrap/ENV.md.template` → `env/ENV.md`
+
+#### Scaffold dirs
+
+`env/`, `env/stamps/`.
+
+#### Design notes
+
+- **Why a separate system.** Runtime stamps already declare per-runtime
+  `env.required`. Cloud stamps describe per-cloud credentials. Build
+  pipeline exports per-deploy-env vars. What was missing: a single
+  registry of every env var, with required/optional split, group
+  rollup, and audit trail. Env-var stamps fill that gap without
+  duplicating per-resource declarations.
+- **Stamps don't store values.** Ever. Values live in `.env*` profile
+  files; secret-source discipline (1Password / Key Vault / etc.) is
+  documented in each stamp's body. The `/import-env` skill is
+  explicitly forbidden from echoing values to stdout or logs.
+- **Profile convention matches existing kit runtime stamps:**
+  `.env-template` (committed) + `.env` (local) + `.env.<profile>`
+  (named). Profile names in env-var stamps should match runtime
+  stamp `env.environments` keys.
+- **`required` vs `optional` is structural.** Required = system
+  won't boot without it. Optional = enables/disables a feature
+  (has a `default`). Lets tooling answer "what's the minimum env
+  set to start?"
+
+---
+
 ## v0.20.0 — 2026-05-13
 
 ### Deploy pipeline + test infrastructure + `/setup-deploy`

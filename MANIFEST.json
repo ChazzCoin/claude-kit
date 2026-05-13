@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-kit/manifest.schema.json",
   "name": "claude-kit",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Portable Claude Code foundation — skills, rules, and templates that work across any repo, any language, any platform.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-kit",
@@ -147,6 +147,12 @@
         "to": ".claude/test-rules.md",
         "policy": "file-replace",
         "note": "Test stamp model and suite-as-gate conventions. See also: stamps.md."
+      },
+      {
+        "from": "kit/env-rules.md",
+        "to": ".claude/env-rules.md",
+        "policy": "file-replace",
+        "note": "Env-var stamp model, profile naming convention, secret discipline. Paired with stamps.md."
       },
       {
         "from": "kit/build/deploy",
@@ -345,6 +351,12 @@
         "to": "build/deploy-log.md",
         "policy": "skip-if-exists",
         "note": "Append-only deploy log — every ./build/deploy run records a row."
+      },
+      {
+        "from": "bootstrap/ENV.md.template",
+        "to": "env/ENV.md",
+        "policy": "skip-if-exists",
+        "note": "Human-readable rollup of env vars by group. Authoritative list lives in env/stamps/."
       }
     ]
   },
@@ -377,7 +389,9 @@
       "tests",
       "tests/stamps",
       "tests/suites",
-      "tests/scripts"
+      "tests/scripts",
+      "env",
+      "env/stamps"
     ]
   }
 }
