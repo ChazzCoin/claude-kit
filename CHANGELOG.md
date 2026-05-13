@@ -20,6 +20,74 @@ human-readable rollback).
 
 ---
 
+## v0.22.0 — 2026-05-13
+
+### `/export-env` — generate `.env-template` from stamps
+
+Inverse of `/import-env`. Reads every active stamp under `env/stamps/`
+and emits a `.env-template` (or filtered variant) at the project root,
+with placeholder values and inline metadata comments grouped by
+`stamp.group`. The two skills round-trip: import reads `.env*` →
+writes stamps, export reads stamps → writes `.env-template`.
+
+#### Added
+
+- **`kit/skills/export-env/export-env.sh`** — pure bash. Subcommands:
+  - `build` — write template to `--output` (default `.env-template`)
+  - `preview` — same as build but stdout, no write
+  - `diff <env-file>` — compare actual file vs stamps; reports missing
+    required, missing optional, unregistered keys. Exit 3 on required
+    drift, 0 on clean.
+  - `list-profiles` — every profile name referenced by any stamp
+  - `help`
+
+  Filter flags (apply to all read commands):
+  - `--profile <name>` — stamps with `environments[]` containing name
+  - `--runtime <name>` — stamps with `used_by.runtimes[]` containing name
+  - `--cloud <name>` — stamps with `used_by.clouds[]` containing name
+  - `--group <pat>` — substring match against `group:` field
+  - `--required-only` — skip `required: false` stamps
+  - `--include-deprecated` / `--include-retired` (default: skip)
+
+  Build/preview-only: `--output <path>`, `--force`, `--stdout`.
+
+- **`kit/skills/export-env/SKILL.md`** — orchestrating skill that
+  routes the user through filter choice, preview, overwrite
+  confirmation, and round-trip validation.
+
+#### Placeholder convention
+
+| Stamp shape | Placeholder |
+|---|---|
+| required, type=string | `__SET_ME__` |
+| required, purpose=secret | `__SECRET__` |
+| required, type=url | `__URL__` |
+| required, type=int | `0` |
+| required, type=bool | `false` |
+| required, type=list | `__COMMA_SEPARATED__` |
+| required, type=json | `{}` |
+| optional + default | the default value |
+| optional, no default | empty after `=` |
+
+#### Use cases
+
+- After `/import-env` first run — generate the canonical template
+- Generate per-profile template: `--profile production`
+- Generate per-runtime template: `--runtime api`
+- Minimum-boot template: `--required-only`
+- Drift audit: `export-env.sh diff .env.production`
+
+#### Design notes
+
+- **Doesn't write values.** Only placeholders distinct from real
+  values (`__SET_ME__`, `__SECRET__`) so a populated `.env` is obvious
+  if accidentally committed.
+- **Doesn't read existing `.env*` values** — not even to "preserve"
+  them across regeneration. Templates are pure metadata.
+- **Doesn't auto-commit.** Generated template left unstaged for review.
+
+---
+
 ## v0.21.1 — 2026-05-13
 
 ### `/import-env` script-driven mechanics — values never enter AI context
