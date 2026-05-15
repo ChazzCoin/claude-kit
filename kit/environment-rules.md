@@ -56,10 +56,8 @@ Each environment:
 |---|---|---|
 | `description` | string | One line — what this environment is. |
 | `env_file` | string | The dotenv profile this environment loads (`.env`, `.env.staging`, `.env.production`). Matches the runtime stamp `env.environments` convention. |
-| `version_env` | string | The `<env>` token in the version string `v<semver>-<sha>-<env>`. Usually the same as the key. |
 | `publish_to` | string \| null | Name of the cloud stamp build artifacts are published to (a registry — e.g. `azure-acr`), or `null`. |
 | `deploy_to` | string \| null | Name of the cloud stamp the deploy targets (e.g. `azure-aks`, `firebase-hosting`), or `null`. |
-| `requires_approval` | bool | Whether a deploy to this environment needs explicit approval. |
 
 `publish_to` / `deploy_to` reference `.claude/clouds/<name>.md` stamp
 names. This is the link the kit was missing: an environment now
@@ -106,7 +104,7 @@ v<semver>-<shortsha>-<env>
   first release.
 - **`<shortsha>`** — `git rev-parse --short HEAD`: exactly the commit
   the build came from.
-- **`<env>`** — the active environment's `version_env`.
+- **`<env>`** — the active environment's name (its registry key).
 
 `environment.sh version` is the **single builder**. The deploy pipeline
 and `/release` produce the version string by calling it, never by
@@ -129,7 +127,7 @@ environment names. Each of these must use registry keys:
 | Cloud stamps (`.claude/clouds/<name>.md`) | `environments` array |
 | Env-var stamps (`env/stamps/<name>.md`) | `environments` array |
 | Deploy pipeline (`build/pipeline-config.toml`) | `[environments] list` |
-| Version strings | the `<env>` token = `version_env` |
+| Version strings | the `<env>` token = the environment's registry key |
 
 An environment name appearing in any of these that is *not* a registry
 key is drift. `environment.sh validate` catches it — it cross-checks

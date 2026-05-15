@@ -147,8 +147,7 @@ elif op == "show":
         print("error: unknown environment '%s'" % args[0], file=sys.stderr)
         sys.exit(2)
     print("environment: %s" % args[0])
-    for f in ("description", "env_file", "version_env",
-              "publish_to", "deploy_to", "requires_approval"):
+    for f in ("description", "env_file", "publish_to", "deploy_to"):
         val = env.get(f)
         if val is None:
             val = "(none)"
@@ -229,10 +228,6 @@ cmd_version() {
     return 2
   fi
 
-  local version_env
-  version_env="$(_registry_py "$reg" field "$env" version_env)"
-  [ -n "$version_env" ] || version_env="$env"
-
   if [ -z "$semver" ]; then
     semver="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)"
     semver="${semver%%-*}"
@@ -246,7 +241,7 @@ cmd_version() {
   local sha
   sha="$(git rev-parse --short HEAD 2>/dev/null || echo 0000000)"
 
-  printf '%s-%s-%s\n' "$semver" "$sha" "$version_env"
+  printf '%s-%s-%s\n' "$semver" "$sha" "$env"
 }
 
 # Cross-check environment names used across the project against the

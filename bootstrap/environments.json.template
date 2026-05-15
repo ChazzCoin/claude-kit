@@ -5,26 +5,20 @@
     "local": {
       "description": "Local development on your own machine.",
       "env_file": ".env",
-      "version_env": "local",
       "publish_to": null,
-      "deploy_to": null,
-      "requires_approval": false
+      "deploy_to": null
     },
     "staging": {
       "description": "Shared pre-production environment.",
       "env_file": ".env.staging",
-      "version_env": "staging",
       "publish_to": null,
-      "deploy_to": null,
-      "requires_approval": false
+      "deploy_to": null
     },
     "prod": {
       "description": "Production.",
       "env_file": ".env.production",
-      "version_env": "prod",
       "publish_to": null,
-      "deploy_to": null,
-      "requires_approval": true
+      "deploy_to": null
     }
   }
 }
