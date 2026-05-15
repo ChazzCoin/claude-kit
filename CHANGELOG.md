@@ -16,6 +16,12 @@ human-readable rollback).
 
 ## Unreleased
 
+(no entries yet)
+
+---
+
+## v0.23.0 — 2026-05-15
+
 ### `bin/init` is MANIFEST-driven — install drift eliminated
 
 `bin/init` previously carried its own hardcoded list of files to copy
