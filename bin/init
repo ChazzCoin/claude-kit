@@ -7,184 +7,194 @@
 #
 # If [target-dir] is omitted, the current working directory is used.
 #
-# Behavior:
-#   - kit/* files are copied into <target>/.claude/ (overwriting any
-#     existing kit-managed files; project files are untouched).
-#   - bootstrap/* files are copied with the .template extension stripped
-#     ONLY if the target file doesn't already exist. Existing
-#     CLAUDE.md / PHASES.md / ROADMAP.md / AUDIT.md are preserved.
-#   - tasks/{backlog,active,done}/ and docs/{decisions,postmortems}/
-#     are created with .gitkeep files if missing.
-#   - .claude/foundation.json is stamped with this kit's HEAD commit SHA
-#     so /sync knows what to compare against.
+# What gets installed is declared entirely in MANIFEST.json — this
+# script holds NO hardcoded file list. It reads the manifest and applies
+# each entry by its policy:
 #
-# This script is intentionally simple. It uses cp + mkdir, no curl, no
-# network calls. The kit must already be on disk (clone it first).
+#   kit.files[]              files the kit owns (updated later via /sync)
+#     directory-mirror       overlay a directory's contents into the target
+#     file-replace           copy a single file (overwrites)
+#     opt-in                 registered but NOT installed — added manually
+#   bootstrap.files[]        one-time files, never overwritten by /sync
+#     skip-if-exists         copy only if the target is absent
+#     init-only-with-sha     copy + stamp {{KIT_SHA}} {{KIT_BRANCH}} {{TODAY}}
+#   scaffold.directories[]   empty directories created with a .gitkeep
+#
+# Because the manifest is the single source of truth, adding a file to
+# the kit is a one-line MANIFEST.json edit — bin/init and /sync both
+# pick it up with no change to this script. bin/check-manifest guards
+# the manifest against drifting from the tree.
+#
+# Requirements:
+#   - python3, to parse MANIFEST.json. JSON parsing in pure bash is not
+#     worth the fragility; python3 ships on every macOS/Linux box and
+#     the kit already depends on it (runtime.sh).
+#   - The kit must already be on disk — clone it first. No network calls.
 
 set -euo pipefail
 
+# ─── Resolve target + kit location ─────────────────────────────────────────
 TARGET="${1:-$PWD}"
+mkdir -p "$TARGET"
 TARGET="$(cd "$TARGET" && pwd)"
 
 KIT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 KIT_REPO_URL="https://github.com/ChazzCoin/claude-kit"
+MANIFEST="$KIT_DIR/MANIFEST.json"
 
-# Resolve the kit's commit SHA. If the kit isn't a git repo (e.g. user
-# downloaded a tarball), fall back to "unpinned" — /sync will still
-# work but will treat every file as potentially-drifted on first run.
+# ─── Preflight ─────────────────────────────────────────────────────────────
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "ERROR: bin/init requires python3 to parse MANIFEST.json — install it and re-run." >&2
+  exit 1
+fi
+if [ ! -f "$MANIFEST" ]; then
+  echo "ERROR: MANIFEST.json not found at $MANIFEST" >&2
+  exit 1
+fi
+if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$MANIFEST" >/dev/null 2>&1; then
+  echo "ERROR: MANIFEST.json is not valid JSON: $MANIFEST" >&2
+  exit 1
+fi
+
+# ─── Resolve kit identity (for the foundation.json pin) ────────────────────
 if git -C "$KIT_DIR" rev-parse HEAD >/dev/null 2>&1; then
   KIT_SHA="$(git -C "$KIT_DIR" rev-parse HEAD)"
   KIT_BRANCH="$(git -C "$KIT_DIR" rev-parse --abbrev-ref HEAD)"
 else
+  # Kit downloaded as a tarball — /sync still works, treats files as drifted.
   KIT_SHA="unpinned"
   KIT_BRANCH="main"
 fi
-
-echo "claude-kit init"
-echo "  source: $KIT_DIR (sha: ${KIT_SHA:0:12}, branch: $KIT_BRANCH)"
-echo "  target: $TARGET"
-echo
-
-# --- 1. Sync kit/ files (overwrite policy) ----------------------------
-
-echo "→ Installing kit files into $TARGET/.claude/"
-mkdir -p "$TARGET/.claude"
-
-# kit/skills/ → .claude/skills/  (mirror)
-if [ -d "$KIT_DIR/kit/skills" ]; then
-  mkdir -p "$TARGET/.claude/skills"
-  # Copy each skill subdirectory. We don't `rm -rf` first — that would
-  # delete project-only skills. We just overlay.
-  for skill in "$KIT_DIR/kit/skills"/*/; do
-    [ -d "$skill" ] || continue
-    name="$(basename "$skill")"
-    cp -R "$skill" "$TARGET/.claude/skills/$name"
-    echo "    skill: $name"
-  done
-fi
-
-# kit/*.md → .claude/<filename>
-# Picks up task-rules.md, task-template.md, and every platform-prefix
-# file (ios-task-rules.md, web-task-rules.md, ios-conventions.md, and
-# any future <platform>-*.md the kit ships). Iterating means new kit
-# files get installed without an init-script edit — the kind of drift
-# fix that motivated this loop in the first place.
-for f in "$KIT_DIR/kit"/*.md; do
-  [ -f "$f" ] || continue
-  name="$(basename "$f")"
-  cp "$f" "$TARGET/.claude/$name"
-  echo "    kit:   $name"
-done
-
-# kit/modes/*.md → .claude/modes/*.md
-# Mode definitions (drive prose). Activated via /mode <name>; the
-# skill copies the activation record to .claude/mode.md (project-owned,
-# never synced). Each *.md here is one mode.
-if [ -d "$KIT_DIR/kit/modes" ]; then
-  mkdir -p "$TARGET/.claude/modes"
-  for f in "$KIT_DIR/kit/modes"/*.md; do
-    [ -f "$f" ] || continue
-    name="$(basename "$f")"
-    cp "$f" "$TARGET/.claude/modes/$name"
-    echo "    mode:  $name"
-  done
-fi
-
-# --- 2. Bootstrap files (skip if exists) ------------------------------
-
-echo
-echo "→ Installing bootstrap templates (preserving any existing files)"
-
-bootstrap_copy() {
-  local src="$1"
-  local dst="$2"
-  local label="$3"
-  if [ -f "$dst" ]; then
-    echo "    skip:    $label  (exists)"
-    return
-  fi
-  mkdir -p "$(dirname "$dst")"
-  cp "$src" "$dst"
-  echo "    create:  $label"
-}
-
-bootstrap_copy "$KIT_DIR/bootstrap/CLAUDE.md.template"    "$TARGET/CLAUDE.md"            "CLAUDE.md"
-bootstrap_copy "$KIT_DIR/bootstrap/PHASES.md.template"    "$TARGET/tasks/PHASES.md"      "tasks/PHASES.md"
-bootstrap_copy "$KIT_DIR/bootstrap/ROADMAP.md.template"   "$TARGET/tasks/ROADMAP.md"     "tasks/ROADMAP.md"
-bootstrap_copy "$KIT_DIR/bootstrap/AUDIT.md.template"     "$TARGET/tasks/AUDIT.md"       "tasks/AUDIT.md"
-
-# Primitive layer (v0.5.0+) — small files that personalize the project's
-# Claude experience. Each is skip-if-exists, so re-runs preserve user edits.
-bootstrap_copy "$KIT_DIR/bootstrap/pact.md.template"      "$TARGET/.claude/pact.md"      ".claude/pact.md"
-bootstrap_copy "$KIT_DIR/bootstrap/welcome.md.template"   "$TARGET/.claude/welcome.md"   ".claude/welcome.md"
-bootstrap_copy "$KIT_DIR/bootstrap/wont-do.md.template"   "$TARGET/.claude/wont-do.md"   ".claude/wont-do.md"
-bootstrap_copy "$KIT_DIR/bootstrap/playlists.md.template" "$TARGET/.claude/playlists.md" ".claude/playlists.md"
-bootstrap_copy "$KIT_DIR/bootstrap/bookmarks.md.template" "$TARGET/.claude/bookmarks.md" ".claude/bookmarks.md"
-
-# --- 3. foundation.json (stamped with current kit SHA) ----------------
-
-FOUNDATION_FILE="$TARGET/.claude/foundation.json"
 TODAY="$(date +%Y-%m-%d)"
 
-if [ -f "$FOUNDATION_FILE" ]; then
-  echo "    skip:    .claude/foundation.json  (exists — use /sync to update)"
-else
-  cat > "$FOUNDATION_FILE" <<EOF
-{
-  "kit": {
-    "repo": "$KIT_REPO_URL",
-    "branch": "$KIT_BRANCH"
-  },
-  "pinned_sha": "$KIT_SHA",
-  "last_synced": "$TODAY",
-  "overrides": []
+echo "claude-kit init"
+echo "  source:   $KIT_DIR (sha: ${KIT_SHA:0:12}, branch: $KIT_BRANCH)"
+echo "  target:   $TARGET"
+echo "  manifest: MANIFEST.json"
+echo
+
+# ─── Manifest reader ───────────────────────────────────────────────────────
+# Emits tab-separated records, one per line:
+#   F <TAB> <policy> <TAB> <from> <TAB> <to>   — a file/dir to install
+#   D <TAB> <dir>                              — a directory to scaffold
+manifest_records() {
+  python3 - "$MANIFEST" <<'PYEOF'
+import json, sys
+m = json.load(open(sys.argv[1]))
+for e in m.get("kit", {}).get("files", []):
+    print("F\t%s\t%s\t%s" % (e["policy"], e["from"], e["to"]))
+for e in m.get("bootstrap", {}).get("files", []):
+    print("F\t%s\t%s\t%s" % (e["policy"], e["from"], e["to"]))
+for d in m.get("scaffold", {}).get("directories", []):
+    print("D\t%s" % d)
+PYEOF
 }
-EOF
-  echo "    create:  .claude/foundation.json  (pinned to ${KIT_SHA:0:12})"
+
+FAILURES=0
+
+# ─── 1. Install files (kit.files + bootstrap.files) ────────────────────────
+echo "→ Installing files (per MANIFEST.json)"
+
+while IFS=$'\t' read -r rtype policy src_rel dst_rel; do
+  [ "$rtype" = "F" ] || continue
+  src="$KIT_DIR/$src_rel"
+  dst="$TARGET/$dst_rel"
+
+  case "$policy" in
+    directory-mirror)
+      if [ ! -d "$src" ]; then
+        echo "    ERROR:   $src_rel — source directory missing"
+        FAILURES=$((FAILURES + 1))
+        continue
+      fi
+      mkdir -p "$dst"
+      cp -R "${src%/}/." "$dst"
+      echo "    mirror:  $dst_rel"
+      ;;
+    file-replace)
+      if [ ! -f "$src" ]; then
+        echo "    ERROR:   $src_rel — source file missing"
+        FAILURES=$((FAILURES + 1))
+        continue
+      fi
+      mkdir -p "$(dirname "$dst")"
+      cp "$src" "$dst"
+      echo "    file:    $dst_rel"
+      ;;
+    opt-in)
+      echo "    opt-in:  $dst_rel  (registered, not installed — see $src_rel)"
+      ;;
+    skip-if-exists)
+      if [ -e "$dst" ]; then
+        echo "    skip:    $dst_rel  (exists)"
+      elif [ ! -e "$src" ]; then
+        echo "    ERROR:   $src_rel — source missing"
+        FAILURES=$((FAILURES + 1))
+      else
+        mkdir -p "$(dirname "$dst")"
+        cp "$src" "$dst"
+        echo "    create:  $dst_rel"
+      fi
+      ;;
+    init-only-with-sha)
+      if [ -e "$dst" ]; then
+        echo "    skip:    $dst_rel  (exists — /sync updates the pin)"
+      elif [ ! -e "$src" ]; then
+        echo "    ERROR:   $src_rel — source missing"
+        FAILURES=$((FAILURES + 1))
+      else
+        mkdir -p "$(dirname "$dst")"
+        sed -e "s|{{KIT_SHA}}|$KIT_SHA|g" \
+            -e "s|{{KIT_BRANCH}}|$KIT_BRANCH|g" \
+            -e "s|{{TODAY}}|$TODAY|g" \
+            "$src" > "$dst"
+        echo "    create:  $dst_rel  (pinned to ${KIT_SHA:0:12})"
+      fi
+      ;;
+    *)
+      echo "    WARNING: $dst_rel — unknown policy '$policy', skipped"
+      FAILURES=$((FAILURES + 1))
+      ;;
+  esac
+done < <(manifest_records)
+
+# ─── 2. Restore executable bit on scripts ──────────────────────────────────
+# cp usually preserves it; make it certain for what skills and deploy run.
+if [ -d "$TARGET/.claude/skills" ]; then
+  find "$TARGET/.claude/skills" -type f \( -name '*.sh' -o -name '*.py' \) \
+    -exec chmod +x {} + 2>/dev/null || true
+fi
+if [ -d "$TARGET/build" ]; then
+  find "$TARGET/build" -type f \( -name '*.sh' -o -name 'deploy' \) \
+    -exec chmod +x {} + 2>/dev/null || true
 fi
 
-# --- 4. Scaffold directories ------------------------------------------
-
+# ─── 3. Scaffold directories ───────────────────────────────────────────────
 echo
-echo "→ Scaffolding directories"
+echo "→ Scaffolding directories (per MANIFEST.json)"
 
-scaffold_dir() {
-  local dir="$1"
-  local label="$2"
-  mkdir -p "$TARGET/$dir"
-  if [ ! -f "$TARGET/$dir/.gitkeep" ] && [ -z "$(ls -A "$TARGET/$dir" 2>/dev/null)" ]; then
-    touch "$TARGET/$dir/.gitkeep"
-    echo "    create:  $label/.gitkeep"
+while IFS=$'\t' read -r rtype dir; do
+  [ "$rtype" = "D" ] || continue
+  full="$TARGET/$dir"
+  mkdir -p "$full"
+  if [ -z "$(ls -A "$full" 2>/dev/null)" ]; then
+    touch "$full/.gitkeep"
+    echo "    create:  $dir/.gitkeep"
   else
-    echo "    skip:    $label  (not empty)"
+    echo "    skip:    $dir  (not empty)"
   fi
-}
+done < <(manifest_records)
 
-scaffold_dir "tasks/backlog"      "tasks/backlog"
-scaffold_dir "tasks/active"       "tasks/active"
-scaffold_dir "tasks/done"         "tasks/done"
-scaffold_dir "docs/decisions"     "docs/decisions"
-scaffold_dir "docs/postmortems"   "docs/postmortems"
-
-# Skill output destinations (v0.4.0+ skills write durable docs here).
-scaffold_dir "docs/notes"         "docs/notes"
-scaffold_dir "docs/audits"        "docs/audits"
-scaffold_dir "docs/handoff"       "docs/handoff"
-scaffold_dir "docs/regrets"       "docs/regrets"
-scaffold_dir "docs/retros"        "docs/retros"
-scaffold_dir "docs/blast-radius"  "docs/blast-radius"
-scaffold_dir "docs/scope"         "docs/scope"
-scaffold_dir "docs/exports"       "docs/exports"
-scaffold_dir "docs/proto"         "docs/proto"
-scaffold_dir "docs/mvp"           "docs/mvp"
-scaffold_dir "docs/refinement"    "docs/refinement"
-scaffold_dir ".claude/tradeoffs"  ".claude/tradeoffs"
-scaffold_dir ".claude/inbox"      ".claude/inbox"
-
-# --- 5. Next steps ----------------------------------------------------
+# ─── Done ──────────────────────────────────────────────────────────────────
+echo
+if [ "$FAILURES" -gt 0 ]; then
+  echo "⚠  claude-kit installed with $FAILURES problem(s) — see ERROR/WARNING lines above."
+  echo "   This usually means MANIFEST.json references a path that doesn't exist."
+  echo "   Run bin/check-manifest in the kit repo to diagnose."
+  echo
+fi
 
 cat <<EOF
-
 ✅ claude-kit installed.
 
 Next steps:
@@ -202,13 +212,15 @@ About the platform-prefixed files (ios-*, web-*, python-*, etc.):
     is a discovery hint, not a gate.
   - Agents read the prefix files relevant to the work at hand. The
     "## Platform" declaration in CLAUDE.md tells them which.
-  - Cross-boundary work (e.g. iOS app to Python API) reads multiple
-    prefix files naturally.
 
 When the kit gets new versions later:
   - Run /sync inside Claude Code to pull updates.
   - Project files (CLAUDE.md, PHASES.md, AUDIT.md, etc.) are never
-    touched by /sync. Skills and task-rules.md are.
+    touched by /sync. Skills and rule files are.
 
 Source: $KIT_REPO_URL
 EOF
+
+if [ "$FAILURES" -gt 0 ]; then
+  exit 1
+fi

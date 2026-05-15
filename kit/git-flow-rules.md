@@ -54,12 +54,12 @@ merges. Otherwise `main` does not move.
 ### Rule 3 — Tag every deploy ("tag and bag")
 
 Every successful deploy from `main` is annotated-tagged with a
-semver version. No exceptions. The tag is the version-controlled
+`v<semver>-<sha>-<env>` version string. No exceptions. The tag is the version-controlled
 record of what shipped — `git log --tags` becomes the deploy
 history.
 
 The phrase **"tag and bag"** is the operational shorthand: tag
-the commit (`git tag -a vX.Y.Z`), bag the app (build the
+the commit (`git tag -a v<semver>-<sha>-<env>`), bag the app (build the
 container or artifact), deploy it. The full sequence — merge →
 build → deploy → tag → push tag → AUDIT entry — is what
 `/release` orchestrates.

@@ -11,7 +11,7 @@ Borrowed from Azure DevOps but platform-agnostic:
 - **Stages** — ordered phases of the pipeline (preflight, build, test, publish, deploy). Each stage is a script. Stages run in order; any failure aborts.
 - **Gates** — reusable check scripts (clean tree, tag matches version, user approval). Stages and environment deploys invoke gates as needed.
 - **Args** — parameters passed at trigger time. `--env` is always required. Others: `--skip-tests`, `--skip-gates`, `--dry-run`, `--tag=<version>`, etc.
-- **Environment** — named deploy target with its own config and deploy command. Lives in `environments/<name>/`. **Always required** — there is no default environment.
+- **Environment** — named deploy target with its own config and deploy command. Lives in `environments/<name>/`. The name must be a key in `.claude/environments.json` (the environment registry — see `environment-rules.md`). **Always required** — there is no default environment.
 
 ## Folder structure
 
@@ -26,8 +26,8 @@ build/
 │   ├── 30-test.sh
 │   ├── 40-publish.sh
 │   └── 50-deploy.sh              # delegates to environments/<env>/deploy.sh
-├── environments/                 # one folder per environment
-│   ├── dev/
+├── environments/                 # one folder per environment (names = environments.json)
+│   ├── local/
 │   │   ├── env.sh                # exports env vars for this environment
 │   │   └── deploy.sh             # the actual deploy command
 │   ├── staging/
@@ -188,7 +188,7 @@ name = "mysite"
 type = "web"                       # web / ios / container / library / mixed
 
 [environments]
-list = ["dev", "staging", "prod"]
+list = ["local", "staging", "prod"]
 requires_approval = ["prod"]
 
 [tests]

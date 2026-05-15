@@ -155,6 +155,12 @@
         "note": "Env-var stamp model, profile naming convention, secret discipline. Paired with stamps.md."
       },
       {
+        "from": "kit/environment-rules.md",
+        "to": ".claude/environment-rules.md",
+        "policy": "file-replace",
+        "note": "The environment model — the .claude/environments.json registry, the machine-local current-env pointer, and the v<semver>-<sha>-<env> version string. Single source of truth for environment names; runtime/cloud/env-var stamps and the deploy pipeline all reference registry keys."
+      },
+      {
         "from": "kit/build/deploy",
         "to": "build/deploy",
         "policy": "file-replace",
@@ -201,6 +207,12 @@
         "to": "tests/scripts/",
         "policy": "directory-mirror",
         "note": "Fallback test scripts for projects without a native test framework."
+      },
+      {
+        "from": "kit/dashboard/",
+        "to": ".claude/dashboard/",
+        "policy": "opt-in",
+        "note": "Opt-in status dashboard (self-contained Python + HTML, stdlib only). Registered so MANIFEST.json is a complete inventory of kit/, but intentionally NOT auto-installed: bin/init skips opt-in entries, and /sync skips any non-mirror/replace policy. Add it per project via the /dashboard skill or `cp -r kit/dashboard .claude/`. See kit/dashboard/README.md."
       }
     ]
   },
@@ -357,6 +369,12 @@
         "to": "env/ENV.md",
         "policy": "skip-if-exists",
         "note": "Human-readable rollup of env vars by group. Authoritative list lives in env/stamps/."
+      },
+      {
+        "from": "bootstrap/environments.json.template",
+        "to": ".claude/environments.json",
+        "policy": "skip-if-exists",
+        "note": "Environment registry — single source of truth for the project's environments (env_file, version_env, publish_to/deploy_to cloud targets, requires_approval). Seeded with local/staging/prod; the project owns it after bootstrap. Read by the /environment skill (environment.sh). See environment-rules.md."
       }
     ]
   },

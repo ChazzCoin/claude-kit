@@ -21,9 +21,9 @@ queue:
 env:
   template: ".env-template"
   file: ".env"
-  environments:
+  environments:                       # keys = .claude/environments.json
     local: ".env"
-    production: ".env.production"
+    prod: ".env.production"
   required: []          # e.g. [REDIS_URL, DATABASE_URL]
   optional: {}
 

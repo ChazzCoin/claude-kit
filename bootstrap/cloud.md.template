@@ -2,7 +2,7 @@
 name: <cloud-name-kebab-case>
 provider: <firebase | azure | aws | gcp | cloudflare | vercel | netlify | self-hosted | other>
 kind: <hosting | database | compute | registry | storage | ml | queue | auth | cdn | monitoring | other>
-environments: [<env>, <env>, ...]
+environments: [<env>, <env>, ...]   # keys from .claude/environments.json
 # Optional: explicit cross-reference to another cloud entry. Useful for
 # deploy chains like "AKS pulls images from ACR" — declare it here.
 pulls_from: []
@@ -46,8 +46,8 @@ How a human / CI authenticates to this surface.
 | **Status / health** | `<command>` |
 | **Logs** | `<command or console URL>` |
 
-Use one command row per environment (dev / staging / prod). Drop rows
-that don't apply.
+Use one command row per environment (local / staging / prod). Drop
+rows that don't apply.
 
 ---
 

@@ -82,7 +82,21 @@ fi
 
 # Export pipeline-wide vars accessible to stages and deploy scripts
 export ENVIRONMENT="$ENV"
-export DEPLOY_TAG="${TAG:-$(git describe --tags --always 2>/dev/null || echo 'untagged')}"
+
+# DEPLOY_TAG: an explicit --tag wins; otherwise the canonical
+# v<semver>-<sha>-<env> string from the environment registry; otherwise
+# git describe (for projects that haven't set up the environment skill).
+if [[ -n "$TAG" ]]; then
+  DEPLOY_TAG="$TAG"
+else
+  DEPLOY_TAG=""
+  ENV_SH="$PROJECT_DIR/.claude/skills/environment/environment.sh"
+  if [[ -f "$ENV_SH" ]]; then
+    DEPLOY_TAG="$(bash "$ENV_SH" version "$ENV" 2>/dev/null || true)"
+  fi
+  DEPLOY_TAG="${DEPLOY_TAG:-$(git describe --tags --always 2>/dev/null || echo 'untagged')}"
+fi
+export DEPLOY_TAG
 export DEPLOY_USER="$(whoami)"
 export DEPLOY_TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 

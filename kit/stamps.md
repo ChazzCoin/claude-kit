@@ -117,14 +117,14 @@ The `env.environments` map enables named profiles:
 env:
   template: .env-template       # committed example
   file: .env                    # default for local runs
-  environments:
+  environments:                 # keys = .claude/environments.json
     local: .env
-    test: .env.test
-    production: .env.production
+    staging: .env.staging
+    prod: .env.production
   required: [JWT_SECRET, POSTGRES_DB_HOST, OPENAI_API_KEYS]
 ```
 
-Run with a specific profile: `runtime.sh check api --env test`.
+Run with a specific profile: `runtime.sh check api --env staging`.
 
 ---
 
@@ -173,7 +173,7 @@ endpoint can read the test's script as a reference implementation.
 | `default` | depends on `required` | scalar/null | Default value if `required: false`; `null` if required. |
 | `used_by.runtimes` | yes | array | Names of runtime stamps that depend on this var. |
 | `used_by.clouds` | yes | array | Names of cloud stamps that depend on this var. |
-| `environments` | yes | array | Profile names this var should be set in (`[local, test, staging, production]` — must match runtime stamp `env.environments` keys). |
+| `environments` | yes | array | Profile names this var should be set in — keys from `.claude/environments.json` (`[local, staging, prod]`), matching the runtime stamp `env.environments` keys. |
 | `created` | yes | date (YYYY-MM-DD) | When the stamp was created. |
 | `status` | yes | enum | active / deprecated / retired |
 | `tags` | no | array | Free-form classification. |

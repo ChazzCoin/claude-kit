@@ -16,7 +16,135 @@ human-readable rollback).
 
 ## Unreleased
 
-(no entries yet)
+### `bin/init` is MANIFEST-driven — install drift eliminated
+
+`bin/init` previously carried its own hardcoded list of files to copy
+and directories to scaffold, maintained by hand and independent of
+`MANIFEST.json`. The two had drifted: `MANIFEST.json` declared 26
+bootstrap mappings; `bin/init` installed 10. The other 16 templates —
+the `cloud` / `runtime` / `test` stamp templates, `settings.json`,
+`vocabulary-overrides.md`, `env/ENV.md`, `build/pipeline-config.toml`,
+`build/deploy-log.md`, `migrations/MIGRATIONS.md`, `tests/TESTS.md` —
+had **no install path at all**, since `/sync` skips bootstrap-policy
+files by design. `bin/init` also never installed the `kit/build/`,
+`kit/agents/`, or `kit/tests/` trees (those reappeared on first `/sync`).
+
+`bin/init` now reads `MANIFEST.json` and applies every `kit.files`,
+`bootstrap.files`, and `scaffold.directories` entry by its policy.
+There is no hardcoded file list left in the script. Adding a file to
+the kit is now a one-line `MANIFEST.json` edit — `bin/init` and `/sync`
+both pick it up with no script change.
+
+#### Added
+
+- **`bin/check-manifest`** — verifies `MANIFEST.json` is a complete,
+  accurate inventory of the kit. Fails if a git-tracked file under
+  `kit/` or `bootstrap/` is not registered (the kit grew a file, the
+  manifest forgot it), or if a manifest `from` points at a path that
+  no longer exists. The structural guard against `MANIFEST.json` itself
+  drifting from the tree. Run it before a kit release or wire it into
+  CI.
+- **`opt-in` policy** (`MANIFEST.json`) — for kit content that is
+  registered but intentionally not auto-installed. `bin/init` skips it;
+  `/sync` already skips any non-`directory-mirror` / `file-replace`
+  policy. `kit/dashboard/` now carries this policy, so `MANIFEST.json`
+  is a complete inventory of `kit/` while the dashboard stays opt-in.
+- **`.github/workflows/kit-checks.yml`** — CI runs `bin/check-manifest`
+  and `bin/lint` on every push and pull request: a drifted manifest or
+  a platform-specific token in a universal file now fails the build.
+
+#### Changed
+
+- **`bin/init`** — rewritten to be MANIFEST-driven. Now requires
+  `python3` to parse `MANIFEST.json` (fails fast with a clear message
+  if absent). The 16 previously-orphaned bootstrap templates and the
+  `build/` / `agents/` / `tests/` kit trees now install on first init.
+- **`MANIFEST.json`** — `kit/dashboard/` registered (`opt-in`); it was
+  absent entirely, so the manifest itself was an incomplete inventory.
+- **`bootstrap/foundation.json`** — the `branch` field is now a
+  `{{KIT_BRANCH}}` placeholder, stamped at init time alongside
+  `{{KIT_SHA}}` and `{{TODAY}}` (it was hardcoded to `main`).
+
+### Environment registry — `.claude/environments.json` + the `/environment` skill
+
+First-class environments. The kit had no single definition of "an
+environment" — the name was re-derived in `pipeline-config.toml`,
+runtime stamps, cloud stamps, and env-var stamps independently, and the
+names drifted (`dev`/`local`, `prod`/`production`).
+`.claude/environments.json` is now the single source of truth: every
+environment name used anywhere in a project must be a key in it.
+
+#### Added
+
+- **`bootstrap/environments.json.template`** → `.claude/environments.json`
+  (`skip-if-exists`) — the environment registry. Each environment
+  declares its `env_file`, `version_env` (the token in the version
+  string), `publish_to` / `deploy_to` cloud-stamp targets, and
+  `requires_approval`. Seeded with `local` / `staging` / `prod`.
+- **`kit/skills/environment/`** — the `/environment` skill.
+  `environment.sh` (python3 for JSON parsing) subcommands: `list` /
+  `show <env>` (read the registry), `current` / `use <env>` (read and
+  set the current working environment), `version [<env>] [--semver
+  vX.Y.Z]` (build the canonical version string).
+- **Current working environment** — a machine-local pointer at
+  `~/.claude/projects/<key>/current-env`, shared across the project's
+  worktrees, never committed. Absent ⇒ the registry `default`; `--env`
+  always overrides it.
+- **`kit/environment-rules.md`** — the environment doctrine: the
+  registry schema, the current-env pointer, the
+  `v<semver>-<shortsha>-<env>` version-string format, and the rule that
+  runtime / cloud / env-var stamps and the deploy pipeline all
+  reference registry environment names.
+
+### Versioning consumes the registry — `v<semver>-<sha>-<env>` everywhere
+
+The deploy pipeline and the release flow now build the version string
+by calling `environment.sh version` — one builder, not a string
+reconstructed independently in each code path.
+
+#### Changed
+
+- **`build/deploy`** — `DEPLOY_TAG` is now `environment.sh version
+  <env>` (the `v<semver>-<sha>-<env>` build stamp). An explicit
+  `--tag` still wins; `git describe` stays the fallback for projects
+  that haven't set up the environment skill.
+- **`build/gates/tag-matches.sh`** — the default tag regex accepts the
+  `-<shortsha>-<env>` suffix and is anchored end to end:
+  `^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9a-f]+-[a-z0-9]+)?$`.
+- **`/release`** — Step 5 proposes the *semver*; Step 8 builds the tag
+  with `environment.sh version prod --semver vX.Y.Z` instead of
+  hand-assembling it. The confirm prompt, AUDIT entry, and closing
+  report now show the full `v<semver>-<sha>-<env>` tag.
+- **`release-rules.md`, `git-flow-rules.md`** — the deploy-tagging
+  doctrine documents `v<semver>-<sha>-<env>` and points at
+  `environment-rules.md` for the version model.
+
+### Re-pointed templates + `environment.sh validate` — the naming split is dead
+
+Every environment name in the kit's templates is now a registry key,
+and `environment.sh validate` enforces it from here on.
+
+#### Added
+
+- **`environment.sh validate`** — cross-checks the environment names in
+  every runtime stamp (`env.environments`), cloud stamp
+  (`environments`), env-var stamp (`environments`), and
+  `build/pipeline-config.toml` (`[environments] list`) against
+  `.claude/environments.json`. Exits 3 on any name that isn't a
+  registry key. python3 + PyYAML.
+
+#### Changed
+
+- **The `dev`/`local` and `prod`/`production` naming split is gone** —
+  kit templates ship the canonical `local` / `staging` / `prod`:
+  `runtime-dev-server.md.template` (`test`→`staging`,
+  `production`→`prod`), `runtime-worker.md.template`
+  (`production`→`prod`), `pipeline-config.toml.template`
+  (`dev`→`local`), and the `cloud.md.template` doc body.
+- **`env-rules.md`, `pipeline-rules.md`, `stamps.md`** — env-name
+  examples re-pointed to `local`/`staging`/`prod`; the rule that every
+  environment name is a key in `.claude/environments.json` is now
+  explicit in each.
 
 ---
 

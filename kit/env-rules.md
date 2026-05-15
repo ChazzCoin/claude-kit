@@ -59,7 +59,7 @@ default: null
 used_by:
   runtimes: [api, worker]
   clouds: []
-environments: [local, test, staging, production]
+environments: [local, staging, prod]
 created: 2026-05-13
 status: active
 tags: [database, critical]
@@ -92,7 +92,7 @@ separately, see `postgres-password.md`.
 | `type` | yes | enum | `string` / `int` / `bool` / `url` / `list` / `json` |
 | `default` | depends | scalar/null | Default value if `required: false`. `null` if `required: true` (no default — must be set). |
 | `used_by` | yes | object | `{runtimes: [...], clouds: [...]}` — names of runtime/cloud stamps that depend on this var |
-| `environments` | yes | array | Profile names this var should be set in (`[local, test, staging, production]`) |
+| `environments` | yes | array | Profile names this var should be set in — keys from `.claude/environments.json` (`[local, staging, prod]`) |
 | `created` | yes | date (YYYY-MM-DD) | When the stamp was created. |
 | `status` | yes | enum | `active` / `deprecated` / `retired` |
 | `tags` | no | array | Free-form classification. |

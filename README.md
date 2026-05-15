@@ -245,19 +245,31 @@ git clone https://github.com/ChazzCoin/claude-kit /tmp/claude-kit
 cd /path/to/your/new/project
 ```
 
-The init script:
+The init script reads `MANIFEST.json` and installs everything it
+declares — there is no hardcoded file list in the script itself. Each
+entry is applied by its policy:
 
-1. Creates `.claude/skills/`, `.claude/modes/`, `.claude/task-rules.md`, `.claude/task-template.md`, and the platform-prefix kit files from `kit/`
-2. Drops project-content bootstrap templates into the project root — **only if they don't already exist**:
-   - `CLAUDE.md`, `tasks/PHASES.md`, `tasks/ROADMAP.md`, `tasks/AUDIT.md`
-3. Drops the primitive layer into `.claude/` — **only if they don't already exist**:
-   - `.claude/pact.md`, `.claude/welcome.md`, `.claude/wont-do.md`, `.claude/playlists.md`, `.claude/bookmarks.md`
-4. Scaffolds output destinations the kit's skills write to:
-   - `tasks/{backlog,active,done}/`
-   - `docs/{decisions,postmortems,notes,audits,handoff,regrets,retros,blast-radius,scope,exports,proto,mvp}/`
-   - `.claude/{tradeoffs,inbox}/`
-5. Writes `.claude/foundation.json` with the kit's commit SHA so `/sync` knows what to compare against
-6. Prints next steps (mostly: fill in the placeholders in CLAUDE.md and declare the project's `## Platform`)
+1. **Kit-managed files** — skills, modes, agents, the rule files, the
+   `build/` pipeline scaffold, and kit test scripts are mirrored into
+   `.claude/`, `build/`, and `tests/`. `/sync` updates these later.
+2. **One-time bootstrap files** — created **only if they don't already
+   exist**, never overwritten by `/sync`: `CLAUDE.md`,
+   `tasks/{PHASES,ROADMAP,AUDIT}.md`, the primitive layer
+   (`.claude/pact.md`, `welcome.md`, `wont-do.md`, `playlists.md`,
+   `bookmarks.md`), the stamp templates under `.claude/clouds/`,
+   `.claude/runtimes/`, `.claude/tests/`, plus `settings.json`,
+   `env/ENV.md`, `build/pipeline-config.toml`, and more.
+3. **`.claude/foundation.json`** — stamped with the kit's commit SHA so
+   `/sync` knows what to compare against.
+4. **Scaffold directories** — empty output destinations the kit's
+   skills write to (`tasks/`, `docs/`, `env/`, …), each with a
+   `.gitkeep`.
+5. Prints next steps (fill in the `CLAUDE.md` placeholders, declare the
+   project's `## Platform`).
+
+`MANIFEST.json` is the single source of truth: adding a kit file is a
+one-line manifest edit, picked up by both `bin/init` and `/sync`.
+`bin/check-manifest` guards the manifest against drifting from the tree.
 
 ### Existing project
 
@@ -284,6 +296,11 @@ flow. Designed to be runnable on a single read of this section, no
 prior kit knowledge required.
 
 ### What `bin/init` will do to an existing project
+
+The table below shows the **policy classes** — `MANIFEST.json` is the
+authoritative, complete list, and every kit file falls into one of
+these policies. `bin/init` never overwrites a project-content file that
+already exists.
 
 | File / dir | Policy | What you should know |
 |---|---|---|

@@ -15,9 +15,15 @@ the version-controlled record of what shipped to users and when —
 
 ### Format
 
-Semver: `vMAJOR.MINOR.PATCH` — e.g. `v1.0.0`, `v1.2.3`. Always
-prefixed with lowercase `v`. Lightweight tags are not allowed — use
-**annotated** tags so the message can carry release notes.
+Release tags carry the full build stamp:
+`v<MAJOR>.<MINOR>.<PATCH>-<shortsha>-<env>` — e.g.
+`v1.2.0-9f3a1c7-prod`. The semver is what the closer proposes and the
+reviewer confirms; the `-<sha>-<env>` suffix is appended by
+`environment.sh version`, so the tag records exactly which commit
+shipped and to which environment. Always lowercase `v`. Lightweight
+tags are not allowed — use **annotated** tags so the message can
+carry release notes. See `environment-rules.md` for the version
+model.
 
 ### Bootstrap
 
@@ -47,9 +53,10 @@ sequence. The shape:
 
 ```sh
 <project's deploy command per CLAUDE.md>     # e.g. npm run deploy, fastlane release, etc.
-# After deploy succeeds:
-git tag -a vX.Y.Z -m "<release notes>"       # on main HEAD
-git push origin vX.Y.Z
+# After deploy succeeds — build the tag, then tag and push:
+TAG="$(bash .claude/skills/environment/environment.sh version prod --semver vX.Y.Z)"
+git tag -a "$TAG" -m "<release notes>"       # on main HEAD
+git push origin "$TAG"
 ```
 
 Release-note message format (annotated tag body, multi-line):
@@ -79,9 +86,9 @@ Include in the deploy completion report:
 The project's rollback command (per `CLAUDE.md`) reverts the live
 build but does **not** move git tags. If a tagged release is rolled
 back, the tag stays in place as a historical record of what was
-deployed, and a new tag (typically a patch bump or `vX.Y.Z-rollback`)
-marks the restored version. Document the rollback in the new tag's
-message.
+deployed, and a new tag (a patch bump — `v<semver>-<sha>-<env>` as
+usual) marks the restored version. Document the rollback in the new
+tag's message.
 
 ## Hotfix path (emergencies)
 

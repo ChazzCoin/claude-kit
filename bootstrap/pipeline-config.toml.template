@@ -9,9 +9,10 @@ name = "{{PROJECT_NAME}}"
 type = "{{PROJECT_TYPE}}"
 
 [environments]
-# Ordered list of available environments. Used by the /deploy skill
-# to populate the env-prompt and by build/deploy to validate --env.
-list = ["dev", "staging", "prod"]
+# Ordered list of available environments. Each must be a key in
+# .claude/environments.json. Used by the /deploy skill to populate the
+# env-prompt and by build/deploy to validate --env.
+list = ["local", "staging", "prod"]
 
 # Environments that require explicit approval before deploy.
 # (10-preflight invokes gates/approval.sh for these.)

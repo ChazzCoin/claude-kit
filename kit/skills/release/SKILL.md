@@ -83,10 +83,11 @@ prepares, asks, executes only on explicit go.
     inline is fine since this skill is the orchestrator).
 
 - **Tag with annotated tags only.** Lightweight tags don't carry
-  the release-notes message. Use `git tag -a vX.Y.Z -m "..."`.
+  the release-notes message. Use `git tag -a <tag> -m "..."`, where
+  `<tag>` is the `v<semver>-<sha>-<env>` string built in Step 8.
 
-- **Push the tag explicitly.** `git push origin vX.Y.Z` — main
-  push and tag push are separate operations.
+- **Push the tag explicitly.** `git push origin <tag>` — main push
+  and tag push are separate operations.
 
 - **Append `tasks/AUDIT.md`** with a 🚀 entry per the audit-log
   rule. Don't commit it as part of the deploy commit — it's a
@@ -205,14 +206,16 @@ Propose with reasoning:
 > Previous: `v1.1.0` · Proposed: **`v1.2.0`** (minor) — batch ships
 > Part CRUD + Work Order CRUD + sidebar counts. Confirm or override.
 
-Wait for confirmation.
+Wait for confirmation. The user confirms the **semver** (`v1.2.0`);
+the git tag is the full build stamp `v1.2.0-<sha>-<env>`, assembled in
+Step 8 by `environment.sh version`. See `environment-rules.md`.
 
 ### Step 6 — Confirm deploy
 
 > Ready to deploy:
 > - Branch: `main` @ `<sha>`
 > - Command: `<deploy command>`
-> - Tag (after success): `vX.Y.Z`
+> - Tag (after success): `vX.Y.Z-<sha>-<env>`
 >
 > Proceed?
 
@@ -226,14 +229,22 @@ If it fails, stop. **Do not retry.** Report exactly what failed.
 
 ### Step 8 — Tag and push
 
-After deploy success:
+After deploy success, build the canonical tag from the confirmed
+semver and the release environment, then tag and push:
 
 ```sh
-git tag -a vX.Y.Z -m "<release notes — see format below>"
-git push origin vX.Y.Z
+# v<semver>-<sha>-<env>. <env> is the production environment from
+# .claude/environments.json (kit default: `prod`) — confirm the key
+# if the registry uses another name.
+TAG="$(bash .claude/skills/environment/environment.sh version prod --semver vX.Y.Z)"
+
+git tag -a "$TAG" -m "<release notes — see format below>"
+git push origin "$TAG"
 ```
 
-Release-notes message format (from task-rules.md):
+`environment.sh version` is the single source of the version string —
+don't hand-assemble the tag. Release-notes message format (from
+task-rules.md):
 
 ```
 vX.Y.Z — <one-line summary>
@@ -255,9 +266,8 @@ unclear.
 Add a 🚀 entry under today's date header. Format:
 
 ```markdown
-- 🚀 **Released vX.Y.Z** — <one-line summary>. Tag `vX.Y.Z` at
-  commit `<sha>`. Integration PR
-  [#N](<url>).
+- 🚀 **Released vX.Y.Z** — <one-line summary>. Tag
+  `vX.Y.Z-<sha>-prod`. Integration PR [#N](<url>).
 ```
 
 Don't commit the audit edit by itself — leave it staged or
@@ -286,7 +296,7 @@ task-rules.md "Closing report after deploy"):
   └────────────────────────────────────────────────────┘
 
 
-  tag           vX.Y.Z       <commit SHA>
+  tag           vX.Y.Z-<sha>-<env>
   branch        main
   integration   PR #N
   deployed by   <user>
@@ -295,7 +305,7 @@ task-rules.md "Closing report after deploy"):
 
 
   →  <live URL from CLAUDE.md / DEPLOY.md>
-  →  https://github.com/<owner>/<repo>/releases/tag/vX.Y.Z
+  →  https://github.com/<owner>/<repo>/releases/tag/vX.Y.Z-<sha>-<env>
 ```
 
 **Tasks shipped**

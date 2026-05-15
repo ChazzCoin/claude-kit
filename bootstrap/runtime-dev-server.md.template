@@ -18,10 +18,10 @@ ports:
 env:
   template: ".env-template"           # committed example file (often gitignored deviates from this)
   file: ".env"                        # default local env file (loaded when --env not specified)
-  environments:                       # named profiles → env file paths
+  environments:                       # named profiles → env file paths (keys = .claude/environments.json)
     local: ".env"
-    test: ".env.test"
-    production: ".env.production"
+    staging: ".env.staging"
+    prod: ".env.production"
   required: []                        # e.g. [DATABASE_URL, OPENAI_API_KEY]
   optional: {}                        # e.g. { LOG_LEVEL: "INFO", MAX_CONNECTIONS: "10" }
 
@@ -80,8 +80,8 @@ Switch between environments via the `--env <profile>` flag on
 `runtime.sh check`:
 
 ```sh
-runtime.sh check <name> --env test         # validate against .env.test
-runtime.sh check <name> --env production   # validate against .env.production
+runtime.sh check <name> --env staging      # validate against .env.staging
+runtime.sh check <name> --env prod         # validate against .env.production
 ```
 
 `env.environments` in the stamp declares which profiles exist.
