@@ -240,6 +240,12 @@
         "policy": "skip-if-exists"
       },
       {
+        "from": "bootstrap/RELEASES.md.template",
+        "to": "tasks/RELEASES.md",
+        "policy": "skip-if-exists",
+        "note": "Forward-looking release plan — per release: version, status, and the phases/tasks slated for it. Read by /release (cross-checks plan vs. what merged) and /roadmap (shipped-version lookup). The plan; tasks/AUDIT.md is the log."
+      },
+      {
         "from": "bootstrap/foundation.json",
         "to": ".claude/foundation.json",
         "policy": "init-only-with-sha",

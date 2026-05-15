@@ -33,10 +33,11 @@ glance.
    - **Type** — only meaningful for non-Done states:
      - `📝 Stub` if the file contains `STATUS: STUB`
      - `📄 Spec` otherwise
-   - **Shipped in** — for Done items only, look up the version
-     in `ROADMAP.md`'s `## Production releases` section. If the
-     task isn't mentioned by any version, mark
-     `(pre-versioning)`.
+   - **Shipped in** — for Done items only, look up the version in
+     `tasks/RELEASES.md`: a ✅ Shipped release names the phases and
+     tasks it landed, so a Done task's version is the shipped release
+     naming its phase (or naming the task directly). If no shipped
+     release names it, mark `(pre-versioning)`.
 
 3. **Skip non-task files:** `.gitkeep`, `README.md`,
    `ROADMAP.md`, anything not matching `TASK-` prefix.

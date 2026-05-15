@@ -193,6 +193,32 @@ triaged. `tasks/triage/` is that holding area.
 - **`/backlog`** — now includes `tasks/triage/`, shown with a
   `🗂 Triage` state and sorted last (tracked, not yet planned).
 
+### Release planning — `tasks/RELEASES.md`
+
+The kit had only after-the-fact deploy mechanics — release scope was
+"whatever merged," read off the integration PR at `/release` time.
+`tasks/RELEASES.md` makes release scope a forward-looking plan.
+
+#### Added
+
+- **`bootstrap/RELEASES.md.template`** → `tasks/RELEASES.md`
+  (`skip-if-exists`) — the release plan. Per release: version, status
+  (📋 planned / 🚧 in progress / ✅ shipped), and the phases / tasks
+  slated for it. Slots into the doc family: PHASES → ROADMAP →
+  RELEASES → AUDIT.
+- **`release-rules.md`** — a "Release planning" section: the release
+  lifecycle, declaring scope as phases/tasks, and how `/release`
+  cross-checks the plan.
+
+#### Changed
+
+- **`/release`** — Step 5 reads `RELEASES.md` for the planned version
+  and scope and cross-checks the declared scope against what merged;
+  Step 9 marks the release entry ✅ Shipped with its tag.
+- **`/roadmap`** — fixed: its "Shipped in" column looked up a
+  `## Production releases` section of `ROADMAP.md` that no template
+  ever created. It now reads `tasks/RELEASES.md`.
+
 ---
 
 ## v0.22.0 — 2026-05-13

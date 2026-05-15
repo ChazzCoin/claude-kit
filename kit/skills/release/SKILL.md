@@ -194,6 +194,14 @@ Surface warnings; ask before proceeding through them.
 
 ### Step 5 — Propose version
 
+**Check `tasks/RELEASES.md` first.** If it has a `📋 Planned` or
+`🚧 In progress` entry for the upcoming release, that entry already
+names the version and the intended scope. Propose its version, and
+**cross-check the declared scope against what actually merged** —
+every task in a scoped phase should be in `tasks/done/`. Surface
+anything planned-but-not-shipped or shipped-but-not-planned before the
+deploy is confirmed. With no release plan, fall back to the heuristic.
+
 Compute next version using the heuristic from task-rules.md:
 
 - **Patch** — bug fixes, copy/styling tweaks.
@@ -261,16 +269,22 @@ Pull the task list from the integration PR's body or recent
 commit messages. Ask the user to confirm the summary line if
 unclear.
 
-### Step 9 — Append AUDIT.md
+### Step 9 — Record the release
 
-Add a 🚀 entry under today's date header. Format:
+Two files record the shipped release.
+
+**`tasks/AUDIT.md`** — add a 🚀 entry under today's date header:
 
 ```markdown
 - 🚀 **Released vX.Y.Z** — <one-line summary>. Tag
   `vX.Y.Z-<sha>-prod`. Integration PR [#N](<url>).
 ```
 
-Don't commit the audit edit by itself — leave it staged or
+**`tasks/RELEASES.md`** — flip this version's entry to ✅ Shipped and
+add a `**Tag.**` line with the git tag. If the release shipped with no
+plan entry, add one retroactively as ✅ Shipped.
+
+Don't commit these edits by themselves — leave them staged or
 uncommitted unless the user says otherwise.
 
 ### Step 10 — Closing report
@@ -372,7 +386,7 @@ deployment box implies a clean release, which a partial state isn't.
 
 - Live build deployed.
 - Annotated tag pushed.
-- AUDIT.md entry appended.
+- AUDIT.md entry appended; RELEASES.md entry marked ✅ Shipped.
 - Closing report rendered with the tag URL, commit SHA, and the
   rollback escape hatch.
 

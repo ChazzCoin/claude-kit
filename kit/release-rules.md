@@ -1,11 +1,51 @@
 # Release Rules
 
-This file covers production deploy tagging format, version-bump
-heuristics, the hotfix path for emergencies, and dependency hygiene
-(audit cadence and manifest discipline). **Read this file when
-shipping a release or auditing dependencies.** It extends
-`task-rules.md`; the five Git flow safety rules in `git-flow-rules.md`
-also apply to every release.
+This file covers release planning, production deploy tagging format,
+version-bump heuristics, the hotfix path for emergencies, and
+dependency hygiene (audit cadence and manifest discipline). **Read
+this file when shipping a release or auditing dependencies.** It
+extends `task-rules.md`; the five Git flow safety rules in
+`git-flow-rules.md` also apply to every release.
+
+## Release planning
+
+A release is **planned before it ships**, not assembled after the
+fact. `tasks/RELEASES.md` is the plan: one entry per release —
+version, status, and the phases / tasks slated for it.
+
+### The release lifecycle
+
+A release entry moves through three states:
+
+- 📋 **Planned** — scope declared (which phases / tasks), not yet
+  building toward it.
+- 🚧 **In progress** — the integration branch is accumulating the
+  release's tasks.
+- ✅ **Shipped** — released; the entry records the git tag.
+
+### Declaring scope
+
+Scope is **phases and tasks**, not freeform prose. A release usually
+ships one or more whole phases (`Phase 3 — Core CRUD`); a task that
+isn't covered by a scoped phase is listed individually
+(`TASK-204 — …`). Because phases and tasks carry IDs, the plan
+cross-references directly against `ROADMAP.md` and the code.
+
+### How `/release` uses the plan
+
+When you cut a release, `/release` reads the matching `RELEASES.md`
+entry and **cross-checks the declared scope against what actually
+merged**: every task in a scoped phase should be `done`, and anything
+planned-but-not-merged or merged-but-not-planned is surfaced before
+the deploy is confirmed. The release plan is the contract; the deploy
+verifies it. After a successful deploy, the entry's status moves to
+✅ Shipped with the git tag recorded.
+
+### Planning vs. logging
+
+`RELEASES.md` is forward-looking — what *will* ship. `tasks/AUDIT.md`
+is the backward-looking log of what *did*. The two meet at ship time:
+the release entry flips to ✅ and a 🚀 AUDIT entry is appended.
 
 ## Production deploy tagging (mandatory)
 
