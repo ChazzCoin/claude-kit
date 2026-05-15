@@ -291,7 +291,7 @@ visible *now*, before adoption drifts.
 | `name` | string | TASK-NNN-slug |
 | `id` | string | TASK-NNN |
 | `phase` | string | Phase identifier |
-| `status` | enum | backlog / active / blocked / done |
+| `status` | enum | triage / backlog / active / blocked / done |
 | `priority` | enum | p0 / p1 / p2 / p3 |
 | `blocked_by` | array | Names of other tasks / external blockers |
 | `assignee` | string | Handle |

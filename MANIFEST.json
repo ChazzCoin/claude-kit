@@ -381,6 +381,7 @@
   "scaffold": {
     "description": "Empty directories created at init.",
     "directories": [
+      "tasks/triage",
       "tasks/backlog",
       "tasks/active",
       "tasks/done",

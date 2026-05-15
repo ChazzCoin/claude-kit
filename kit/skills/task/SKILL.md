@@ -19,9 +19,11 @@ guess.
   only when the user explicitly signals priority ("emergency",
   "needs to ship before X", "this is next up", etc.). See
   `task-rules.md` "Adding tasks to the backlog (priority rule)".
-- **Respect the phase structure rule.** Every new task belongs
-  to exactly one phase. If the user doesn't say which, ASK
-  before filing. Never invent a phase.
+- **Respect the phase structure rule.** Every new task belongs to a
+  phase — or, when there's no phase for it yet, to the triage holding
+  area (`tasks/triage/`). If the user doesn't name a phase, ASK; if
+  there's still no home, file to triage rather than forcing one.
+  Never invent a phase.
 - **Edits are conservative by default.** Don't commit unless
   explicitly approved. Drafts go to `tasks/backlog/` and
   ROADMAP.md updates go through your normal git flow only when
@@ -51,10 +53,12 @@ guess.
 
 1. **Confirm intent.** "Filing a new task for: <reflect-back>.
    Right?"
-2. **Determine phase.** If the user didn't say, ask: "Which
-   phase does this belong to?" Show the current phase names
-   from PHASES.md (just names, not full scopes). User picks
-   or proposes a new phase (which is a `/plan` job — hand off).
+2. **Determine phase — or triage.** If the user didn't say, ask:
+   "Which phase does this belong to?" Show the current phase names
+   from PHASES.md (just names, not full scopes). The user picks one,
+   proposes a new phase (a `/plan` job — hand off), or has no home
+   for it yet — in which case file it to triage (Operation 6) and
+   stop.
 3. **Determine type.** Default = stub. If user signaled
    priority, draft a full spec using `task-template.md`'s shape.
 4. **Assign ID.** Next available `TASK-NNN`.
@@ -342,6 +346,30 @@ The user has an idea but doesn't know where it fits.
 3. **Defer the decision** to the user. If they're stuck, hand
    off to `/plan` for a deeper think.
 
+### Operation 6 — File a task to the triage holding area
+
+For a task the user wants tracked but has no phase for yet. See
+`task-rules.md` "The triage holding area."
+
+1. **Confirm intent.** "Filing to triage — tracked, no phase yet:
+   <reflect-back>. Right?"
+2. **Assign ID.** Next available `TASK-NNN`.
+3. **Draft a stub** at `tasks/triage/TASK-NNN-slug.md` — title +
+   1-line user story + 1-line "why" + `STATUS: STUB`.
+4. **Do NOT touch `ROADMAP.md`.** Triage tasks are not in the
+   roadmap — that is the whole point.
+5. **Don't commit yet.** Show what was drafted.
+
+### Operation 7 — Graduate a task out of triage
+
+1. **Confirm the destination.** "Graduate TASK-NNN into which
+   phase?" (Or: pulled straight into `active/` to work now?)
+2. **`git mv`** the spec file from `tasks/triage/` to
+   `tasks/backlog/` (or `tasks/active/` if it's being worked now).
+3. **Add the task line to `ROADMAP.md`** under the chosen phase's
+   list, in ID order.
+4. **Don't commit yet.**
+
 ## What you must NOT do
 
 - **Don't draft a full spec when the user didn't ask for one.**
@@ -371,6 +399,8 @@ The user has an idea but doesn't know where it fits.
 The user leaves with one or more of:
 - A new task filed (typically a stub) in `tasks/backlog/`
   and listed in `ROADMAP.md` under the right phase
+- A task filed to `tasks/triage/` (tracked, no phase yet), or a
+  triage task graduated into a phase
 - An existing task moved to a different phase
 - A stub expanded to a full spec
 - A clear answer to a placement question

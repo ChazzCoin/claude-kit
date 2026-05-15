@@ -243,9 +243,15 @@ blocker note**. Do not disable tests. Do not bypass hooks
 ## State machine
 
 ```
-tasks/backlog/  →  tasks/active/  →  tasks/done/
+tasks/triage/  →  tasks/backlog/  →  tasks/active/  →  tasks/done/
 ```
 
+- **`triage/`** holds tracked-but-untriaged tasks — filed with a
+  `TASK-NNN` id but no phase and no priority. A task sits here until
+  it is *graduated* (assigned a phase → `git mv` to `backlog/`) or
+  pulled straight to `active/` to be worked. Triage tasks are the one
+  exception to the phase rule — they are deliberately not in
+  `ROADMAP.md`. See "The triage holding area" below.
 - Move the task file with `git mv` as you transition states.
 - `active/` should hold at most one task at a time per agent.
 - `done/` only after PR is merged. Open-but-unmerged PRs stay in
@@ -369,9 +375,12 @@ the date headers.
 
 ## Phase structure (mandatory)
 
-Phases are first-class. Every task belongs to exactly one phase — no
-orphans, no "we'll figure out where this fits later." This keeps work
-scoped and the backlog navigable.
+Phases are first-class. Every task **in `ROADMAP.md`** belongs to
+exactly one phase — no orphans, no "we'll figure out where this fits
+later." This keeps the planned work scoped and the backlog navigable.
+The one exception is the **triage holding area** (see "The triage
+holding area" below): tasks parked in `tasks/triage/` are tracked but
+deliberately unphased, and are not in `ROADMAP.md` until they graduate.
 
 ### Each phase has three things
 
@@ -395,12 +404,15 @@ map.
 
 ### Adding a task
 
-1. Decide the phase first. If unclear, ask the user.
+1. Decide the phase first. If unclear, ask the user. If there is no
+   phase for it yet, file it to the triage holding area instead
+   (`tasks/triage/`, see below) and stop — don't force a phase.
 2. Add the task line under that phase's bulleted list in `ROADMAP.md`.
 3. Create the spec file in `tasks/backlog/` (per the priority rule).
 
-If a task doesn't fit any existing phase, **propose a new phase**
-rather than dumping it into "cross-cutting" or fudging the fit.
+If a task doesn't fit any existing phase, either **propose a new
+phase** or **file it to triage** — don't dump it into "cross-cutting"
+or fudge the fit.
 
 ### Creating a new phase
 
@@ -458,6 +470,46 @@ want it. Common signals:
 
 When unsure, ask: *"backlog only, or should this jump the queue?"* —
 one round trip beats a wrong placement.
+
+## The triage holding area
+
+`tasks/triage/` holds tasks you want **tracked long-term but not yet
+triaged** — no phase, no priority, no commitment on when (or whether)
+they get worked. The holding pen for "good idea, file it, sort out the
+placement later."
+
+A triage task is a real task — a `TASK-NNN` id and a spec file
+(usually a stub) in `tasks/triage/`. What it lacks is a phase, so by
+the phase rule above it is **not in `ROADMAP.md`**. That is the
+deliberate line: *in `ROADMAP.md` ⟺ has a phase ⟺ triaged.* The triage
+folder is everything tracked but not yet in the roadmap.
+
+### Filing to triage
+
+When the user files a task with no phase for it yet — or can't name
+one — file it to `tasks/triage/` rather than forcing a phase. A stub
+is the norm: title + 1-line user story + 1-line "why" +
+`STATUS: STUB`. Do **not** edit `ROADMAP.md` — triage tasks are not
+in it.
+
+This differs from the priority rule's default ("no urgency signal →
+backlog stub"): that still assumes a phase. Triage is for when there
+is no phase yet at all.
+
+### Graduating a task out of triage
+
+A triage task leaves the holding area one of two ways:
+
+- **Graduated into a phase.** Assign a phase, `git mv` the spec file
+  from `tasks/triage/` to `tasks/backlog/`, and add its task line to
+  that phase's list in `ROADMAP.md`. It is now a normal backlog task.
+- **Pulled straight to work.** `git mv` it to `tasks/active/`. It
+  still needs a phase for the roadmap — assign one and add the
+  `ROADMAP.md` line as part of starting it.
+
+Don't let `tasks/triage/` rot. When it accumulates, that is the
+signal for a triage pass: graduate what matters, and move what won't
+be done to `.claude/wont-do.md`.
 
 ## Postmortem rule (incidents get captured)
 

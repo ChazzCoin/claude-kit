@@ -167,6 +167,32 @@ code read them. Now the pipeline does.
   `deploy.sh` document the vars and how to route on them.
 - **`pipeline-rules.md`** — documents the pipeline-wide variables.
 
+### Task triage — a holding area for untriaged tasks
+
+`tasks/backlog/` requires a phase to enter it ("no orphans"), so there
+was nowhere to park a task you want tracked long-term but haven't
+triaged. `tasks/triage/` is that holding area.
+
+#### Added
+
+- **`tasks/triage/`** — a fourth task directory, scaffolded by
+  `bin/init`. A triage task is real — a `TASK-NNN` id and a stub spec
+  — but has no phase and no priority, and is deliberately *not* in
+  `ROADMAP.md`. The lifecycle is now
+  `triage/ → backlog/ → active/ → done/`.
+
+#### Changed
+
+- **`task-rules.md`** — documents the triage holding area: filing to
+  it, graduating out of it (assign a phase, `git mv` to `backlog/`,
+  add the `ROADMAP.md` line), and the carve-out from the phase rule
+  (the "no orphans" rule applies to `ROADMAP.md`, with triage as the
+  explicit exception).
+- **`/task`** — gains "file to triage" and "graduate from triage"
+  operations; no longer forces a phase when there isn't one.
+- **`/backlog`** — now includes `tasks/triage/`, shown with a
+  `🗂 Triage` state and sorted last (tracked, not yet planned).
+
 ---
 
 ## v0.22.0 — 2026-05-13
