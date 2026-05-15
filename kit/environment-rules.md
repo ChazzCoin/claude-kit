@@ -63,6 +63,9 @@ Each environment:
 names. This is the link the kit was missing: an environment now
 *declares where it ships* — registry and compute surface — instead of
 that living only as freeform shell in `build/environments/<env>/`.
+`build/deploy` reads them via `environment.sh get` and exports
+`PUBLISH_TO` / `DEPLOY_TO`, so stage scripts route on the registry's
+declared target instead of hard-coding it.
 
 ## The current working environment
 
@@ -141,6 +144,7 @@ a release, or wire it into CI.
 
 - `list` — environments, with the current one marked
 - `show <env>` — one environment's full config
+- `get <env> <field>` — one field's raw value (for stage scripts)
 - `current` — the current working environment
 - `use <env>` — switch the current working environment
 - `version [<env>] [--semver vX.Y.Z]` — build the version string

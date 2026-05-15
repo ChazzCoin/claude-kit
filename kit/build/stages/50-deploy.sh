@@ -4,6 +4,9 @@
 # Generic by design. Delegates to environments/<env>/deploy.sh. Keep
 # environment-specific logic in that file, not here.
 #
+# $DEPLOY_TO — this environment's deploy-target cloud-stamp name from
+# .claude/environments.json — is exported and available to deploy.sh.
+#
 # $1 = environment name
 
 set -euo pipefail

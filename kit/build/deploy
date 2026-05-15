@@ -83,20 +83,32 @@ fi
 # Export pipeline-wide vars accessible to stages and deploy scripts
 export ENVIRONMENT="$ENV"
 
-# DEPLOY_TAG: an explicit --tag wins; otherwise the canonical
-# v<semver>-<sha>-<env> string from the environment registry; otherwise
-# git describe (for projects that haven't set up the environment skill).
+# The environment skill — present when the project set up the
+# environment registry; absent otherwise (the pipeline still works).
+ENV_SH="$PROJECT_DIR/.claude/skills/environment/environment.sh"
+
+# DEPLOY_TAG: an explicit --tag wins; else the canonical
+# v<semver>-<sha>-<env> string from the environment registry; else
+# git describe (for projects without the environment skill).
+DEPLOY_TAG=""
 if [[ -n "$TAG" ]]; then
   DEPLOY_TAG="$TAG"
-else
-  DEPLOY_TAG=""
-  ENV_SH="$PROJECT_DIR/.claude/skills/environment/environment.sh"
-  if [[ -f "$ENV_SH" ]]; then
-    DEPLOY_TAG="$(bash "$ENV_SH" version "$ENV" 2>/dev/null || true)"
-  fi
-  DEPLOY_TAG="${DEPLOY_TAG:-$(git describe --tags --always 2>/dev/null || echo 'untagged')}"
+elif [[ -f "$ENV_SH" ]]; then
+  DEPLOY_TAG="$(bash "$ENV_SH" version "$ENV" 2>/dev/null || true)"
 fi
+DEPLOY_TAG="${DEPLOY_TAG:-$(git describe --tags --always 2>/dev/null || echo 'untagged')}"
 export DEPLOY_TAG
+
+# PUBLISH_TO / DEPLOY_TO: the cloud-stamp targets the registry declares
+# for this environment (empty when unset, or when there is no registry).
+# Stages and environments/<env>/deploy.sh route on these.
+export PUBLISH_TO=""
+export DEPLOY_TO=""
+if [[ -f "$ENV_SH" ]]; then
+  PUBLISH_TO="$(bash "$ENV_SH" get "$ENV" publish_to 2>/dev/null || true)"
+  DEPLOY_TO="$(bash "$ENV_SH" get "$ENV" deploy_to 2>/dev/null || true)"
+fi
+
 export DEPLOY_USER="$(whoami)"
 export DEPLOY_TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 
@@ -104,6 +116,8 @@ export DEPLOY_TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 echo "════════════════════════════════════════════════════════════"
 echo "  Deploy → $ENV"
 echo "  Tag:  $DEPLOY_TAG"
+[[ -n "$PUBLISH_TO" ]] && echo "  Publish → $PUBLISH_TO"
+[[ -n "$DEPLOY_TO" ]]  && echo "  Target  → $DEPLOY_TO"
 echo "  User: $DEPLOY_USER"
 echo "  Time: $DEPLOY_TIMESTAMP"
 $DRY_RUN  && echo "  Mode: DRY RUN (no execution)"

@@ -78,9 +78,9 @@ environment name used anywhere in a project must be a key in it.
 
 - **`bootstrap/environments.json.template`** → `.claude/environments.json`
   (`skip-if-exists`) — the environment registry. Each environment
-  declares its `env_file`, `version_env` (the token in the version
-  string), `publish_to` / `deploy_to` cloud-stamp targets, and
-  `requires_approval`. Seeded with `local` / `staging` / `prod`.
+  declares a `description`, its `env_file`, and `publish_to` /
+  `deploy_to` cloud-stamp targets. Seeded with `local` / `staging` /
+  `prod`.
 - **`kit/skills/environment/`** — the `/environment` skill.
   `environment.sh` (python3 for JSON parsing) subcommands: `list` /
   `show <env>` (read the registry), `current` / `use <env>` (read and
@@ -145,6 +145,27 @@ and `environment.sh validate` enforces it from here on.
   examples re-pointed to `local`/`staging`/`prod`; the rule that every
   environment name is a key in `.claude/environments.json` is now
   explicit in each.
+
+### Phase 4 — the deploy pipeline consumes the registry
+
+`publish_to` / `deploy_to` were declared in the registry but inert — no
+code read them. Now the pipeline does.
+
+#### Added
+
+- **`environment.sh get <env> <field>`** — a machine-readable accessor.
+  Prints one field's raw value (`env_file`, `publish_to`, `deploy_to`,
+  `description`), empty when unset. The interface stage scripts use to
+  read the registry.
+
+#### Changed
+
+- **`build/deploy`** — exports `PUBLISH_TO` and `DEPLOY_TO` (read from
+  the registry via `environment.sh get`) for every stage and
+  `environments/<env>/deploy.sh`, and shows them in the deploy banner.
+  The stage skeletons (`40-publish.sh`, `50-deploy.sh`) and the example
+  `deploy.sh` document the vars and how to route on them.
+- **`pipeline-rules.md`** — documents the pipeline-wide variables.
 
 ---
 

@@ -44,6 +44,7 @@ bash .claude/skills/environment/environment.sh <subcommand>
 
   list                        List environments; marks the current one.
   show <env>                  Print one environment's full config.
+  get <env> <field>           Print one field's value (for stage scripts).
   current                     Print the current working environment.
   use <env>                   Switch the current working environment.
   version [<env>] [--semver vX.Y.Z]
@@ -62,6 +63,7 @@ Exit codes: `0` success, `1` operational error, `2` usage error,
 - "what environments are there" / "list environments" → `list`
 - "what environment am I in" / "current env" → `current`
 - "show me staging" / "what's prod configured as" → `show <env>`
+- "what's prod's deploy target" / one field for a script → `get <env> <field>`
 - "switch to staging" / "use prod" / "set env to local" → `use <env>`
 - "what's the version string" / "version for prod" → `version [<env>]`
 - "check environments line up" / "validate the registry" → `validate`

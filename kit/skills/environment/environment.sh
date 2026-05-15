@@ -25,6 +25,11 @@ USAGE:
   environment.sh show <env>
       Print one environment's full configuration.
 
+  environment.sh get <env> <field>
+      Print one field's raw value for one environment — machine-readable,
+      for stage scripts. Fields: description, env_file, publish_to,
+      deploy_to. Empty output when the field is unset.
+
   environment.sh current
       Print the current working environment name. Falls back to the
       registry's `default` when no pointer has been set.
@@ -177,6 +182,15 @@ resolve_current() {
     fi
   fi
   echo "$default"
+}
+
+cmd_get() {
+  local reg="$1" env="$2" field="$3"
+  if ! _registry_py "$reg" has "$env"; then
+    echo "error: '$env' is not a declared environment" >&2
+    return 2
+  fi
+  _registry_py "$reg" field "$env" "$field"
 }
 
 cmd_use() {
@@ -401,6 +415,10 @@ main() {
     show)
       [ $# -ge 1 ] || { echo "error: show needs <env>" >&2; return 2; }
       _registry_py "$reg" show "$1"
+      ;;
+    get)
+      [ $# -ge 2 ] || { echo "error: get needs <env> and <field>" >&2; return 2; }
+      cmd_get "$reg" "$1" "$2"
       ;;
     current)
       resolve_current "$reg"

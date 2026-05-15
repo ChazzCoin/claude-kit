@@ -6,6 +6,7 @@
 #
 # Available exported vars (set by build/deploy + env.sh):
 #   $ENVIRONMENT, $DEPLOY_TAG, $DEPLOY_USER, $DEPLOY_TIMESTAMP
+#   $PUBLISH_TO, $DEPLOY_TO — registry cloud-stamp targets for this env
 #   $IMAGE_NAME, $REGISTRY, plus anything env.sh exports
 #
 # Examples by target:

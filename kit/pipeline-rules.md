@@ -66,6 +66,18 @@ The canonical command. Always runs the same way:
 
 Any non-zero exit aborts the pipeline.
 
+### Pipeline-wide variables
+
+`build/deploy` exports these for every stage and `environments/<env>/deploy.sh`:
+
+- `ENVIRONMENT` — the `--env` name.
+- `DEPLOY_TAG` — the `v<semver>-<sha>-<env>` version string.
+- `PUBLISH_TO` / `DEPLOY_TO` — the registry's `publish_to` / `deploy_to`
+  cloud-stamp names for this environment (empty when unset). Stages and
+  `deploy.sh` route on these instead of hard-coding the target. See
+  `environment-rules.md`.
+- `DEPLOY_USER`, `DEPLOY_TIMESTAMP`.
+
 ## Stages
 
 The kit ships skeleton scripts. Each stage receives the environment name as `$1`. Each stage either does its job and exits 0, does nothing and exits 0, or fails and exits non-zero.
