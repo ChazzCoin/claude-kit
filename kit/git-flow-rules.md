@@ -114,3 +114,45 @@ manually:
 
 These rules apply to every Claude session, every project, every
 release. Don't soften them.
+
+## Working across machines
+
+When the same project lives on more than one machine, the five
+rules above still hold — but a new failure mode appears: work
+**stranded** on one machine, invisible to the other. A session is
+abandoned mid-task, the next session starts elsewhere, and
+uncommitted work just sits. These rules keep the machines
+convergent. They are enforced by the `/git-guard` skill — read on.
+
+### Pull before you branch
+
+Start every session on a fast-forwarded trunk. Before cutting a
+branch: `git fetch`, then `git pull --ff-only`. `--ff-only` is
+mandatory — it refuses *loudly* instead of silently creating a
+merge commit when history has diverged. Make it the default:
+`git config pull.ff only`.
+
+### Never end a session with stranded work
+
+Uncommitted or unpushed work is invisible to every other machine.
+Before stepping away: commit it to the branch and push, or run
+`/handoff`. `git stash` does **not** count — a stash is
+machine-local and does not travel.
+
+### Cross-machine context lives in the repo, not in memory
+
+Claude's per-machine memory does not travel between machines.
+Anything the next session needs — wherever it runs — must live in
+a git-tracked file: `/handoff` (writes `.claude/welcome.md`),
+`/inbox @self`, or `CLAUDE.md`. Never rely on memory to carry
+context across machines.
+
+### Automate it — `/git-guard`
+
+Every rule above depends on a human remembering. `/git-guard on`
+makes them automatic: it installs hooks that auto-capture
+work-in-progress as `wip:` commits on an isolated branch,
+fast-forward and surface abandoned work at session start, and
+block commits or pushes that land directly on trunk. Run it once
+per machine, per project. The hook set is per-machine; the
+discipline is universal.

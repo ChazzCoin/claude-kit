@@ -16,7 +16,36 @@ human-readable rollback).
 
 ## Unreleased
 
-(no entries yet)
+### `/git-guard` — git-hygiene lockdown + multi-machine work safety
+
+New skill `git-guard` (`kit/skills/git-guard/`) plus a "Working
+across machines" section in `git-flow-rules.md`.
+
+The problem it solves: sessions get abandoned mid-task — a human
+walks away, forgets, starts fresh, maybe on a different machine —
+and uncommitted work sits stranded and invisible. `/git-guard on`
+installs a hook set that closes that gap so nothing has to be
+remembered:
+
+- **Claude Code hooks** (`SessionStart` / `Stop` / `PreCompact` /
+  `SessionEnd`) — auto-capture work-in-progress as `wip:` commits
+  on an isolated branch (rescuing off trunk first), and at session
+  start fast-forward the branch and surface abandoned work (dirty
+  trees, unpushed branches, `wip/` branches, dirty worktrees).
+- **Git hooks** (`pre-commit` / `pre-push`) — block commits and
+  pushes that land directly on the trunk branch, and block commits
+  containing secret-shaped files.
+- Sets `git config pull.ff only`.
+
+Autosave fires on a change threshold (lines / files) with a time
+backstop that catches small abandoned changes. Secret-shaped
+untracked files are skipped during autosave and rejected at
+commit; deliberate overrides via `GIT_GUARD_ALLOW_MAIN` /
+`GIT_GUARD_ALLOW_SECRET` (never `--no-verify`).
+
+Per-machine — Claude Code hooks land in `.claude/settings.local.json`,
+git hooks in `.git/hooks/`. Built on `/install-hook`. Pull via
+`/sync`, then run `/git-guard on` once per machine per project.
 
 ---
 
