@@ -16,6 +16,12 @@ human-readable rollback).
 
 ## Unreleased
 
+(no entries yet)
+
+---
+
+## v0.24.0 — 2026-05-16
+
 ### `/git-guard` — git-hygiene lockdown + multi-machine work safety
 
 New skill `git-guard` (`kit/skills/git-guard/`) plus a "Working
